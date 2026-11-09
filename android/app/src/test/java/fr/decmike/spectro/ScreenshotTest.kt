@@ -35,7 +35,10 @@ import java.io.FileOutputStream
 class ScreenshotTest {
     @get:Rule val rule = createAndroidComposeRule<ComponentActivity>()
 
+    private fun said(fragment: String) = synchronized(vm.recentMessages) { vm.recentMessages.any { fragment in it } }
+
     private fun shot(name: String, night: Boolean = false) {
+        org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
         rule.waitForIdle()
         val dir = File("build/captures").apply { mkdirs() }
         val view = rule.activity.window.decorView
@@ -48,12 +51,19 @@ class ScreenshotTest {
 
     /** waitUntil avec un message d'état en cas d'échec. */
     private fun wait(what: String, ms: Long = 30_000, cond: () -> Boolean) {
-        try {
-            rule.waitUntil(ms) { cond() }
-        } catch (e: Throwable) {
+        // Les coroutines du ViewModel lancées depuis les fils réseau sont postées sur la boucle
+        // principale : Robolectric ne les exécute que si on la fait tourner explicitement.
+        val looper = org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper())
+        val end = System.currentTimeMillis() + ms
+        while (System.currentTimeMillis() < end) {
+            looper.idle()
+            if (cond()) { rule.waitForIdle(); return }
+            Thread.sleep(50)
+        }
+        run {
             throw AssertionError("$what : délai dépassé. job=${vm.status.value?.job} live=${vm.status.value?.live} " +
                 "conn=${vm.conn.value} bibliothèque=${vm.library.value.map { it.name }} " +
-                "messages=${synchronized(vm.recentMessages) { vm.recentMessages.toList() }}", e)
+                "messages=${synchronized(vm.recentMessages) { vm.recentMessages.toList() }}")
         }
     }
 
@@ -80,19 +90,17 @@ class ScreenshotTest {
 
         // Séquences : une série de noirs, puis une séquence longue capturée en cours
         vm.startSequence("noirs", "dark", 3, 20_000, 1, 0.0, "median", null, false)
-        wait("étape 4 : vm.status.value?.job != null", 20_000) { vm.status.value?.job != null }
-        wait("étape 5 : vm.status.value?.job == null", 30_000) { vm.status.value?.job == null }
+        wait("fin des noirs") { said("« noirs » terminé") && vm.status.value?.job == null }
         vm.startSequence("vega", "light", 40, 20_000, 1, 0.5, "mean", null, false)
         vm.tab.value = Tab.SEQ
         wait("étape 6 : (vm.status.value?.job?.index ?: 0) >= 2", 20_000) { (vm.status.value?.job?.index ?: 0) >= 2 }
         shot("2_sequences")
         vm.stopSequence()
-        wait("étape 7 : vm.status.value?.job == null", 30_000) { vm.status.value?.job == null }
+        wait("arrêt de vega") { said("« vega » arrêté") && vm.status.value?.job == null }
 
         // Bibliothèque
         vm.startSequence("lampe HgAr", "lamp", 3, 20_000, 2, 0.0, "mean", null, false)
-        wait("étape 8 : vm.status.value?.job != null", 20_000) { vm.status.value?.job != null }
-        wait("étape 9 : vm.status.value?.job == null", 30_000) { vm.status.value?.job == null }
+        wait("fin de la lampe") { said("« lampe HgAr » terminé") && vm.status.value?.job == null }
         vm.refreshLibrary()
         wait("étape 10 : vm.library.value.any { it.name == 'lampe HgAr' }", 20_000) { vm.library.value.any { it.name == "lampe HgAr" } }
         vm.tab.value = Tab.LIB
@@ -103,7 +111,7 @@ class ScreenshotTest {
         vm.loadToWorkspace(listOf(lib.first { it.name == "noirs" }.id, lib.first { it.name == "lampe HgAr" }.id))
         wait("étape 11 : vm.workspace.value.size == 2", 20_000) { vm.workspace.value.size == 2 }
         vm.tab.value = Tab.PROC
-        rule.waitForIdle()
+        wait("onglet traitement", 5_000) { true }
         rule.onNodeWithText("Détecter les raies").performScrollTo().performClick()
         rule.onNodeWithText("Raies d'émission").performScrollTo().performClick()
         rule.onNodeWithText("Détecter les raies").performScrollTo().performClick()
@@ -111,7 +119,7 @@ class ScreenshotTest {
 
         // Étalonnage : lampe Hg + Ar, identification automatique
         vm.tab.value = Tab.CALIB
-        rule.waitForIdle()
+        wait("onglet étalonnage", 5_000) { true }
         rule.onNodeWithText("Néon").performClick()
         rule.onNodeWithText("Mercure + Argon").performClick()
         rule.onNodeWithText("Identification automatique").performScrollTo().performClick()
