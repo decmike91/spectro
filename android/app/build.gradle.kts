@@ -51,3 +51,7 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20240303")   // vraie implémentation (android.jar n'a que des bouchons)
 }
+
+tasks.withType<Test>().configureEach {
+    testLogging { events("passed", "skipped", "failed") }
+}
