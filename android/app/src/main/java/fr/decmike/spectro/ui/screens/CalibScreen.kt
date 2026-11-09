@@ -107,6 +107,11 @@ fun CalibScreen(vm: AppViewModel) {
         }
 
         Section("Identification des raies") {
+            src?.let { s ->
+                if (SpectrumMath.saturatedPoints(s.values) > 0)
+                    Text("Raies saturées (sommets plats) : réduisez le temps de pose pour un étalonnage précis.",
+                         color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            }
             Button(onClick = {
                 val s = src ?: run { vm.say("Pas de spectre de lampe"); return@Button }
                 val pk = SpectrumMath.findPeaks(s.values, 0.04, 6, 80).map { SpectrumMath.gaussPeak(s.values, it) }

@@ -63,6 +63,17 @@ class SpectrumMathTest {
         assertEquals(lam(2000.0), SpectrumMath.polyval(fit.coeffs, 2000.0), 0.02)
     }
 
+    @Test fun saturatedLines() {
+        // raies écrêtées à 2000 : le centre du plateau doit rester juste
+        val hgAr = (LineCatalog.MERCURY + LineCatalog.ARGON).map { it.nm }.filter { it < lam(3647.0) }
+        val y = lampSpectrum(hgAr).map { minOf(it, 2000.0) }.toDoubleArray()
+        assertTrue(SpectrumMath.saturatedPoints(y) > 0)
+        val peaks = SpectrumMath.findPeaks(y, 0.05, 6, 40).map { SpectrumMath.gaussPeak(y, it) }
+        val (assigned, fit) = LineCatalog.robustCalibration(peaks, coeffs, LineCatalog.MERCURY + LineCatalog.ARGON, 3)!!
+        assertTrue("au moins 8 raies : ${assigned.size}", assigned.size >= 8)
+        assertTrue("rms ${fit.rms}", fit.rms < 0.05)
+    }
+
     @Test fun measureGaussianLine() {
         val sigma = 0.6
         val y = lampSpectrum(listOf(546.074), sigma)

@@ -48,7 +48,10 @@ fun niceTicks(lo: Double, hi: Double, target: Int = 6): List<Double> {
     return out
 }
 
-fun fmt(v: Double, digits: Int = 1): String = String.format(Locale.ROOT, "%.${digits}f", v)
+fun fmt(v: Double, digits: Int = 1): String {
+    val r = String.format(Locale.ROOT, "%.${digits}f", v)
+    return if (r.startsWith("-") && r.trimStart('-').all { it == '0' || it == '.' }) r.substring(1) else r
+}
 
 /**
  * Graphique de spectre : pincer pour zoomer (axe horizontal), glisser pour se déplacer,

@@ -123,7 +123,12 @@ class ScreenshotTest {
         rule.onNodeWithText("Néon").performClick()
         rule.onNodeWithText("Mercure + Argon").performClick()
         rule.onNodeWithText("Identification automatique").performScrollTo().performClick()
+        wait("étalonnage automatique", 10_000) { said("raies identifiées") || said("impossible") }
+        assert(said("raies identifiées")) { "identification automatique en échec : ${vm.recentMessages.toList()}" }
         shot("5_etalonnage")
+        rule.onNodeWithText("Enregistrer sur le Pi").performScrollTo().performClick()
+        wait("enregistrement de l'étalonnage", 10_000) { said("Étalonnage enregistré") }
+        shot("5b_etalonnage_resultat")
 
         // Mode nuit
         vm.setNight(true)

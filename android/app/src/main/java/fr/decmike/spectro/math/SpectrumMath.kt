@@ -185,6 +185,7 @@ object SpectrumMath {
      */
     fun gaussPeak(y: DoubleArray, i: Int, half: Int = 8): Double {
         if (i <= 0 || i >= y.size - 1) return i.toDouble()
+        plateauCenter(y, i)?.let { return it }
         var bg = Double.MAX_VALUE
         for (k in max(0, i - half)..min(y.size - 1, i + half)) bg = min(bg, y[k])
         val a = y[i - 1] - bg; val b = y[i] - bg; val c = y[i + 1] - bg
@@ -193,6 +194,27 @@ object SpectrumMath {
         val d = la - 2 * lb + lc
         if (d >= 0) return refinePeak(y, i)
         return i + (0.5 * (la - lc) / d).coerceIn(-1.0, 1.0)
+    }
+
+    /**
+     * Raie saturée (sommet plat) : renvoie le milieu du plateau autour de [i], ou null si le
+     * sommet n'est pas plat (moins de 3 points au maximum).
+     */
+    fun plateauCenter(y: DoubleArray, i: Int, tol: Double = 1e-6): Double? {
+        val top = y[i]
+        val eps = tol * max(1.0, abs(top))
+        var a = i; var b = i
+        while (a > 0 && abs(y[a - 1] - top) <= eps) a--
+        while (b < y.size - 1 && abs(y[b + 1] - top) <= eps) b++
+        return if (b - a >= 2) 0.5 * (a + b) else null
+    }
+
+    /** Nombre de points sur des sommets plats (indice de saturation). */
+    fun saturatedPoints(y: DoubleArray): Int {
+        val top = y.maxOrNull() ?: return 0
+        var n = 0
+        for (v in y) if (abs(v - top) <= 1e-6 * max(1.0, abs(top))) n++
+        return if (n >= 3) n else 0
     }
 
     /** Barycentre d'un pic au-dessus d'un fond linéaire sur ±[half] points. */
