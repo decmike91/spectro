@@ -61,7 +61,8 @@ class ScreenshotTest {
         vm.setLive(true, null)
         rule.waitUntil(20_000) { vm.live.value != null }
         vm.setLive(false, null)
-        Thread.sleep(500)
+        rule.waitUntil(20_000) { vm.status.value?.live == false }
+        Thread.sleep(300)
         shot("1_direct")
 
         // Séquences : une série de noirs, puis une séquence longue capturée en cours
