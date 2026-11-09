@@ -9,11 +9,12 @@ import android.net.nsd.NsdServiceInfo
  * annoncé par avahi sur le Pi Zero).
  */
 class Discovery(context: Context, private val onFound: (name: String, hostPort: String) -> Unit) {
-    private val nsd = context.getSystemService(Context.NSD_SERVICE) as NsdManager
+    private val nsd: NsdManager? = context.getSystemService(Context.NSD_SERVICE) as? NsdManager
     private var listener: NsdManager.DiscoveryListener? = null
 
     fun start() {
         stop()
+        val nsd = nsd ?: return
         val l = object : NsdManager.DiscoveryListener {
             override fun onDiscoveryStarted(serviceType: String) {}
             override fun onDiscoveryStopped(serviceType: String) {}
@@ -41,7 +42,7 @@ class Discovery(context: Context, private val onFound: (name: String, hostPort: 
     }
 
     fun stop() {
-        listener?.let { try { nsd.stopServiceDiscovery(it) } catch (_: Exception) {} }
+        listener?.let { try { nsd?.stopServiceDiscovery(it) } catch (_: Exception) {} }
         listener = null
     }
 }

@@ -39,6 +39,17 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew --no-daemon testDebugUnitTest assembleRelease
+      - name: Publier les captures d'écran (branche « captures »)
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          [ -d app/build/captures ] || exit 0
+          cd app/build/captures
+          git init -q && git checkout -q -b captures
+          git config user.name "github-actions" && git config user.email "actions@github.com"
+          git add . && git commit -qm "Captures d'écran ($GITHUB_REF_NAME ${GITHUB_SHA::7})"
+          git push -qf "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:captures
       - name: Journal du serveur
         if: always()
         run: cat /tmp/serveur.log || true

@@ -33,6 +33,9 @@ android {
     buildFeatures {
         compose = true
     }
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
 }
 
 dependencies {
@@ -50,6 +53,12 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20240303")   // vraie implémentation (android.jar n'a que des bouchons)
+    // captures d'écran des écrans en JVM (Robolectric)
+    testImplementation(composeBom)
+    testImplementation("androidx.compose.ui:ui-test-junit4")
+    testImplementation("org.robolectric:robolectric:4.14.1")
+    testImplementation("androidx.test:core:1.6.1")
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
 }
 
 tasks.withType<Test>().configureEach {
