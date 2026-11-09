@@ -44,51 +44,64 @@ class ScreenshotTest {
         FileOutputStream(File(dir, (if (night) "nuit_" else "") + "$name.png")).use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
     }
 
+    private lateinit var vm: AppViewModel
+
+    /** waitUntil avec un message d'état en cas d'échec. */
+    private fun wait(what: String, ms: Long = 30_000, cond: () -> Boolean) {
+        try {
+            rule.waitUntil(ms) { cond() }
+        } catch (e: Throwable) {
+            throw AssertionError("$what : délai dépassé. job=${vm.status.value?.job} live=${vm.status.value?.live} " +
+                "conn=${vm.conn.value} bibliothèque=${vm.library.value.map { it.name }} " +
+                "messages=${synchronized(vm.recentMessages) { vm.recentMessages.toList() }}", e)
+        }
+    }
+
     @Test fun allScreens() {
         val url = System.getenv("SPECTRO_TEST_URL")
         assumeTrue("serveur de test absent", !url.isNullOrBlank())
         val app = ApplicationProvider.getApplicationContext<Application>()
         app.getSharedPreferences("spectro", Context.MODE_PRIVATE).edit().putString("host", url).commit()
-        val vm = AppViewModel(app)
+        vm = AppViewModel(app)
         rule.setContent {
             val n by vm.nightMode.collectAsState()
             SpectroTheme(n) { AppRoot(vm) }
         }
-        rule.waitUntil(20_000) { vm.conn.value == Conn.CONNECTED }
+        wait("étape 1 : vm.conn.value == Conn.CONNECTED", 20_000) { vm.conn.value == Conn.CONNECTED }
 
         // Direct : un spectre puis arrêt (écran figé pour la capture)
         vm.setConfig(tintUs = 20_000, averages = 2)
         vm.setLive(true, null)
-        rule.waitUntil(20_000) { vm.live.value != null }
+        wait("étape 2 : vm.live.value != null", 20_000) { vm.live.value != null }
         vm.setLive(false, null)
-        rule.waitUntil(20_000) { vm.status.value?.live == false }
+        wait("étape 3 : vm.status.value?.live == false", 20_000) { vm.status.value?.live == false }
         Thread.sleep(300)
         shot("1_direct")
 
         // Séquences : une série de noirs, puis une séquence longue capturée en cours
         vm.startSequence("noirs", "dark", 3, 20_000, 1, 0.0, "median", null, false)
-        rule.waitUntil(20_000) { vm.status.value?.job != null }
-        rule.waitUntil(30_000) { vm.status.value?.job == null }
+        wait("étape 4 : vm.status.value?.job != null", 20_000) { vm.status.value?.job != null }
+        wait("étape 5 : vm.status.value?.job == null", 30_000) { vm.status.value?.job == null }
         vm.startSequence("vega", "light", 40, 20_000, 1, 0.5, "mean", null, false)
         vm.tab.value = Tab.SEQ
-        rule.waitUntil(20_000) { (vm.status.value?.job?.index ?: 0) >= 2 }
+        wait("étape 6 : (vm.status.value?.job?.index ?: 0) >= 2", 20_000) { (vm.status.value?.job?.index ?: 0) >= 2 }
         shot("2_sequences")
         vm.stopSequence()
-        rule.waitUntil(30_000) { vm.status.value?.job == null }
+        wait("étape 7 : vm.status.value?.job == null", 30_000) { vm.status.value?.job == null }
 
         // Bibliothèque
         vm.startSequence("lampe HgAr", "lamp", 3, 20_000, 2, 0.0, "mean", null, false)
-        rule.waitUntil(20_000) { vm.status.value?.job != null }
-        rule.waitUntil(30_000) { vm.status.value?.job == null }
+        wait("étape 8 : vm.status.value?.job != null", 20_000) { vm.status.value?.job != null }
+        wait("étape 9 : vm.status.value?.job == null", 30_000) { vm.status.value?.job == null }
         vm.refreshLibrary()
-        rule.waitUntil(20_000) { vm.library.value.any { it.name == "lampe HgAr" } }
+        wait("étape 10 : vm.library.value.any { it.name == 'lampe HgAr' }", 20_000) { vm.library.value.any { it.name == "lampe HgAr" } }
         vm.tab.value = Tab.LIB
         shot("3_spectres")
 
         // Traitement : lampe + noir dans l'espace de travail, détection des raies
         val lib = vm.library.value
         vm.loadToWorkspace(listOf(lib.first { it.name == "noirs" }.id, lib.first { it.name == "lampe HgAr" }.id))
-        rule.waitUntil(20_000) { vm.workspace.value.size == 2 }
+        wait("étape 11 : vm.workspace.value.size == 2", 20_000) { vm.workspace.value.size == 2 }
         vm.tab.value = Tab.PROC
         rule.waitForIdle()
         rule.onNodeWithText("Détecter les raies").performScrollTo().performClick()

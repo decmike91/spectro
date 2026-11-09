@@ -74,7 +74,16 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         connect(host.value)
     }
 
-    fun say(msg: String) { _messages.tryEmit(msg) }
+    /** Derniers messages (diagnostic). */
+    val recentMessages = ArrayDeque<String>()
+
+    fun say(msg: String) {
+        synchronized(recentMessages) {
+            recentMessages.addLast(msg)
+            while (recentMessages.size > 20) recentMessages.removeFirst()
+        }
+        _messages.tryEmit(msg)
+    }
 
     private fun launchSafe(what: String, block: suspend (SpectroApi) -> Unit) {
         val a = api

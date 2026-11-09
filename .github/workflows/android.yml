@@ -29,7 +29,7 @@ jobs:
         working-directory: logiciel/serveur
         run: |
           pip install aiohttp numpy pyserial
-          nohup python spectro_server.py --sim --port 8080 --data /tmp/spectro_data --calib /tmp/calib.json > /tmp/serveur.log 2>&1 &
+          nohup python spectro_server.py --sim --verbose --port 8080 --data /tmp/spectro_data --calib /tmp/calib.json > /tmp/serveur.log 2>&1 &
           for i in $(seq 1 30); do curl -sf http://127.0.0.1:8080/api/status > /dev/null && break; sleep 1; done
           curl -sf http://127.0.0.1:8080/api/status | head -c 200
       - uses: gradle/actions/setup-gradle@v4

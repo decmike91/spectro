@@ -700,11 +700,15 @@ def main():
     ap.add_argument("--data", default="~/spectro_data")
     ap.add_argument("--calib", default="~/.tcd1304_calib.json")
     ap.add_argument("--sim", action="store_true", help="simulateur, sans matériel")
+    ap.add_argument("--verbose", action="store_true", help="journal des requêtes")
     a = ap.parse_args()
+    if a.verbose:
+        import logging
+        logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
     dev = TCD1304Simulator() if a.sim else TCD1304(a.serial)
     app = make_app(dev, a.data, os.path.expanduser(a.calib), sim=a.sim)
     print("Spectro : http://0.0.0.0:%d  (données : %s)" % (a.port, os.path.expanduser(a.data)))
-    web.run_app(app, port=a.port, print=None)
+    web.run_app(app, port=a.port, print=None, access_log_format='%r %s %Tf')
 
 
 if __name__ == "__main__":
