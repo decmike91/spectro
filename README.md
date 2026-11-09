@@ -28,6 +28,8 @@ Spectroscope à réseau de diffraction pour petite lunette (conçu pour une 80/4
 | [`mecanique/v2/`](mecanique/v2) | Version actuelle : modèle paramétrique CadQuery `spectro_v2.py`, vérifications, **24 STL à imprimer** et STEP d'assemblage (`export_v2/`) |
 | [`mecanique/v1/`](mecanique/v1) | Première version (sans miroir ni réglages de mise au point), gardée pour comparaison |
 | [`logiciel/`](logiciel) | Électronique et logiciel : firmware MicroPython du Pico, pilote Python, interface graphique PyQt5, schéma électronique — voir [`logiciel/README.md`](logiciel/README.md) |
+| [`logiciel/serveur/`](logiciel/serveur) | Serveur du Pi Zero (API HTTP + WebSocket) utilisé par l'appli Android : acquisitions, séquences, bibliothèque, étalonnage, ventilateur |
+| [`android/`](android) | Appli Android (Kotlin, Jetpack Compose) : direct, séquences, bibliothèque, traitements, analyse des raies, étalonnage — APK dans les [Releases](https://github.com/decmike91/spectro/releases/tag/apk-latest) |
 
 ## Démarrage rapide
 
@@ -53,6 +55,10 @@ Tous les paramètres sont regroupés en tête de `spectro_v2.py` : focales, angl
 cd optique && python3 optique.py
 ```
 
+### Appli Android
+
+Installer `spectro.apk` depuis les [Releases](https://github.com/decmike91/spectro/releases/tag/apk-latest), puis lancer le serveur sur le Pi Zero (voir [`logiciel/serveur/README.md`](logiciel/serveur/README.md)). Détails dans [`android/README.md`](android/README.md).
+
 ### Électronique et logiciel d'acquisition
 
 Voir [`logiciel/README.md`](logiciel/README.md) : schéma, câblage, installation du firmware sur le Pico et de l'interface sur le Pi Zero. Pour tester l'interface sans matériel :
@@ -66,4 +72,5 @@ python3 logiciel/rpi/spectro_gui.py --sim
 
 - La mécanique a été vérifiée par calcul (interférences entre pièces, trajet des faisceaux), mais n'a pas encore été imprimée.
 - Le firmware et le schéma ont été vérifiés par émulation et par calcul, mais pas encore sur un montage réel.
-- La commande du ventilateur par le Pi Zero (MOSFET sur un GPIO, arrêt pendant les acquisitions) est décrite dans le dossier de conception, mais n'est pas encore codée dans l'interface.
+- La commande du ventilateur (MOSFET sur le GPIO18, arrêt pendant les acquisitions) est gérée par le serveur du Pi.
+- L'appli Android est compilée et testée automatiquement par GitHub Actions, et le serveur a été testé en simulation. L'ensemble n'a pas encore été essayé avec le matériel réel.
