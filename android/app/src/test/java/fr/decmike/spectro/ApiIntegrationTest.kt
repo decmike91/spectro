@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit
 class ApiIntegrationTest {
     private val url: String? = System.getenv("SPECTRO_TEST_URL")
 
-    @Test fun fullWorkflow() = runBlocking {
+    @Test fun fullWorkflow() = runBlocking<Unit> {
         assumeTrue("serveur de test absent", !url.isNullOrBlank())
         val api = SpectroApi(url!!)
 
