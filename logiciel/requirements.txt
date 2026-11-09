@@ -1,0 +1,9 @@
+# Raspberry Pi Zero : préférer les paquets système
+#   sudo apt install python3-pyqt5 python3-pyqtgraph python3-numpy python3-serial
+PyQt5
+pyqtgraph
+numpy
+pyserial
+# génération du schéma uniquement
+schemdraw
+matplotlib
