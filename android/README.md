@@ -2,6 +2,12 @@
 
 Appli native (Kotlin, Jetpack Compose) qui se connecte au serveur du Pi Zero (`logiciel/serveur`) par le Wi-Fi.
 
+| Direct | Séquence en cours | Étalonnage | Mode nuit |
+| --- | --- | --- | --- |
+| ![Direct](../docs/images/android_1_direct.png) | ![Séquences](../docs/images/android_2_sequences.png) | ![Étalonnage](../docs/images/android_5b_etalonnage_resultat.png) | ![Mode nuit](../docs/images/android_nuit_6_direct.png) |
+
+Captures produites automatiquement à chaque compilation (test `ScreenshotTest`, appli connectée au serveur en simulateur) : la série complète est sur la branche [`captures`](https://github.com/decmike91/spectro/tree/captures).
+
 ## Installer
 
 1. Sur le téléphone, ouvrir la page [Releases du dépôt](https://github.com/decmike91/spectro/releases/tag/apk-latest) et télécharger `spectro.apk`. Il est recompilé automatiquement à chaque modification de `main`.
@@ -69,4 +75,4 @@ cd android
 ./gradlew testDebugUnitTest        # tests du moteur de calcul
 ```
 
-Le moteur de calcul (`math/`) est en Kotlin pur et couvert par les tests unitaires. L'APK de release est signé avec la clé de débogage : il s'installe directement, mais ne peut pas être publié sur le Play Store tel quel.
+Le moteur de calcul (`math/`) est en Kotlin pur et couvert par les tests unitaires. Si la variable `SPECTRO_TEST_URL` pointe sur un serveur (par exemple `127.0.0.1:8080` avec `spectro_server.py --sim`), deux tests de plus s'exécutent : `ApiIntegrationTest` (tout le dialogue réseau) et `ScreenshotTest` (affichage de chaque écran et captures dans `app/build/captures`). L'APK de release est signé avec la clé de débogage : il s'installe directement, mais ne peut pas être publié sur le Play Store tel quel.
