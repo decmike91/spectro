@@ -35,6 +35,13 @@ import java.io.FileOutputStream
 class ScreenshotTest {
     @get:Rule val rule = createAndroidComposeRule<ComponentActivity>()
 
+    /** Laisse expirer les messages (snackbars) qui pourraient masquer les boutons. */
+    private fun clearSnack() {
+        rule.mainClock.advanceTimeBy(6_000)
+        org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+        rule.waitForIdle()
+    }
+
     private fun said(fragment: String) = synchronized(vm.recentMessages) { vm.recentMessages.any { fragment in it } }
 
     private fun shot(name: String, night: Boolean = false) {
@@ -112,6 +119,7 @@ class ScreenshotTest {
         wait("étape 11 : vm.workspace.value.size == 2", 20_000) { vm.workspace.value.size == 2 }
         vm.tab.value = Tab.PROC
         wait("onglet traitement", 5_000) { true }
+        clearSnack()
         rule.onNodeWithText("Détecter les raies").performScrollTo().performClick()
         rule.onNodeWithText("Raies d'émission").performScrollTo().performClick()
         rule.onNodeWithText("Détecter les raies").performScrollTo().performClick()
@@ -120,12 +128,14 @@ class ScreenshotTest {
         // Étalonnage : lampe Hg + Ar, identification automatique
         vm.tab.value = Tab.CALIB
         wait("onglet étalonnage", 5_000) { true }
+        clearSnack()
         rule.onNodeWithText("Néon").performClick()
         rule.onNodeWithText("Mercure + Argon").performClick()
         rule.onNodeWithText("Identification automatique").performScrollTo().performClick()
         wait("étalonnage automatique", 10_000) { said("raies identifiées") || said("impossible") }
         assert(said("raies identifiées")) { "identification automatique en échec : ${vm.recentMessages.toList()}" }
         shot("5_etalonnage")
+        clearSnack()
         rule.onNodeWithText("Enregistrer sur le Pi").performScrollTo().performClick()
         wait("enregistrement de l'étalonnage", 10_000) { said("Étalonnage enregistré") }
         shot("5b_etalonnage_resultat")

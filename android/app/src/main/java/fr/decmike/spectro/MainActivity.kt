@@ -48,6 +48,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.flow.collectLatest
 import fr.decmike.spectro.ui.AppViewModel
 import fr.decmike.spectro.ui.Chips
 import fr.decmike.spectro.ui.Conn
@@ -98,7 +99,8 @@ fun AppRoot(vm: AppViewModel) {
     val snack = remember { SnackbarHostState() }
     var settings by remember { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) { vm.messages.collect { snack.showSnackbar(it) } }
+    // un seul message à la fois : le plus récent remplace le précédent
+    LaunchedEffect(Unit) { vm.messages.collectLatest { snack.showSnackbar(it) } }
 
     Scaffold(
         topBar = {
