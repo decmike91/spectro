@@ -10,7 +10,7 @@ Deux accus 18650 **en parallèle** forment une seule cellule de 3,7 V d'environ 
 Le module PENGLIN la charge par USB-C (2,4 A, environ 3 h 30) et en tire du 5 V (2 A maximum).
 
 ```
-            ┌──────────── BMS 1S 3 A ────────────┐
+            ┌──────────── BMS 1S 6 A ────────────┐
  2 × 18650 ─┤ B+  B−                    P+  P− ├── B+ / B− du module PENGLIN
  (parallèle)└────────────────────────────────────┘
                                    USB-C (face arrière) : charge
@@ -30,7 +30,7 @@ Consommation : Pi Zero 2 W 0,6 à 1,5 W, RP2350-Zero + capteur 0,3 à 0,5 W, ven
 | --- | --- | --- |
 | Accus | 2 × Samsung INR18650-35E (3450 mAh, sans protection) | même lot, même tension avant de les relier |
 | Support | Support 2 × 18650 (environ 77 × 41 × 20 mm) | **recâbler en parallèle** : + avec +, − avec − |
-| Protection | Carte BMS 1S 3 A (DW01A + FS8205A) | indispensable avec des accus sans protection |
+| Protection | Carte BMS 1S « 12A » DW01 + 8205, 35 × 7,4 × 2 mm (6 A continu, coupure 7,5 A, 4,25 V / 2,45 V) | indispensable avec des accus sans protection ; une 3 A est trop juste (pointe ≈ 3,8 A à 2 A de sortie) |
 | Chargeur / boost | Module PENGLIN USB-C / USB-A 5 V 2 A (carte 25 × 20 mm) | cavalier de charge sur **4,2 V** (pas 4,35 V) |
 | Interrupteur | Interrupteur à bascule, découpe 19,5 × 13,5 mm (KCD1 ou équivalent) | coupe le 5 V interne |
 | Sangles | 2 sangles velcro de 10 mm, ou 2 colliers | passent dans les fentes des montants |
@@ -42,7 +42,8 @@ Consommation : Pi Zero 2 W 0,6 à 1,5 W, RP2350-Zero + capteur 0,3 à 0,5 W, ven
 
 1. **Accus** : vérifier que les deux accus sont à la même tension (à 0,05 V près) avant de les
    mettre dans le support recâblé en parallèle. Souder la carte BMS sur les fils du support
-   (B+ / B−), la coller sur le plafond du compartiment à côté du support.
+   (B+ / B−), la coller sur le petit côté du support d'accus (face vers le module PENGLIN).
+   Ses sorties P+ / P− vont aux pastilles B+ / B− du module PENGLIN.
 2. **Support** : le plaquer au plafond avec les deux sangles qui passent dans les fentes des montants.
 3. **Module PENGLIN** : vérifier le cavalier 4,2 V. Le glisser entre les rails, connecteurs
    contre la face arrière, puis visser la bride 25 par dessous. Son bord bute contre le corps de
