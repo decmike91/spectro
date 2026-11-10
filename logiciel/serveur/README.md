@@ -9,26 +9,19 @@ Les séquences tournent sur le Pi : elles continuent si le téléphone se met en
 
 ## Installation sur le Pi Zero
 
+Démarrage automatique du serveur **et** de l'interface à l'écran : voir [`../demarrage`](../demarrage/README.md).
+
 ```bash
-sudo apt install python3-aiohttp python3-numpy python3-serial python3-gpiozero avahi-daemon
 git clone https://github.com/decmike91/spectro.git ~/spectro
+bash ~/spectro/logiciel/demarrage/installer.sh
 
 # test sans matériel
 python3 ~/spectro/logiciel/serveur/spectro_server.py --sim
-
-# démarrage automatique
-sudo cp ~/spectro/logiciel/serveur/spectro.service /etc/systemd/system/
-sudo systemctl enable --now spectro
-
-# annonce sur le réseau : l'appli trouve le Pi toute seule
-sudo cp ~/spectro/logiciel/serveur/avahi-spectro.service /etc/avahi/services/spectro.service
 ```
-
-Le service suppose l'utilisateur `pi` et le dépôt dans `/home/pi/spectro` : adaptez `spectro.service` sinon.
 
 Options : `--port 8080`, `--serial /dev/ttyACM0`, `--data ~/spectro_data` (dossier des spectres), `--calib ~/.tcd1304_calib.json` (étalonnage partagé avec l'interface PyQt `../rpi/spectro_gui.py`), `--sim` (simulateur).
 
-Le serveur et l'interface PyQt utilisent le même port série : n'en lancez qu'un à la fois.
+Le serveur garde le port série. L'interface PyQt lancée avec `--server` passe par lui : l'écran du Pi et l'appli Android s'utilisent en même temps. Sans `--server`, l'interface ouvre elle-même le port série : arrêtez alors le serveur (`sudo systemctl stop spectro`).
 
 ## Ventilateur
 

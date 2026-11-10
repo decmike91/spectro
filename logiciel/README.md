@@ -25,7 +25,9 @@ et le traitement. La même interface tourne aussi sur un PC avec le Pico branch�
 | `schema/schema.py` | Source du schéma (schemdraw), modifiable |
 | `firmware/main.py` | Firmware MicroPython du Pico (PIO + DMA + protocole USB) |
 | `rpi/tcd1304.py` | Pilote Python + simulateur |
-| `rpi/spectro_gui.py` | Interface graphique (PyQt5 + pyqtgraph) |
+| `rpi/spectro_gui.py` | Interface graphique (PyQt5 + pyqtgraph) ; `--server` pour passer par le serveur |
+| `serveur/` | Serveur réseau pour l'appli Android |
+| `demarrage/installer.sh` | Démarrage automatique du serveur et de l'interface |
 
 ## Nomenclature
 

@@ -29,6 +29,7 @@ Spectroscope à réseau de diffraction pour petite lunette (conçu pour une 80/4
 | [`mecanique/v1/`](mecanique/v1) | Première version (sans miroir ni réglages de mise au point), gardée pour comparaison |
 | [`logiciel/`](logiciel) | Électronique et logiciel : firmware MicroPython du Pico, pilote Python, interface graphique PyQt5, schéma électronique — voir [`logiciel/README.md`](logiciel/README.md) |
 | [`logiciel/serveur/`](logiciel/serveur) | Serveur du Pi Zero (API HTTP + WebSocket) utilisé par l'appli Android : acquisitions, séquences, bibliothèque, étalonnage, ventilateur |
+| [`logiciel/demarrage/`](logiciel/demarrage) | Démarrage automatique au boot du Pi : serveur, annonce réseau et interface à l'écran (`installer.sh`) |
 | [`android/`](android) | Appli Android (Kotlin, Jetpack Compose) : direct, séquences, bibliothèque, traitements, analyse des raies, étalonnage — APK dans les [Releases](https://github.com/decmike91/spectro/releases/tag/apk-latest) |
 
 ## Démarrage rapide
@@ -57,7 +58,7 @@ cd optique && python3 optique.py
 
 ### Appli Android
 
-Installer `spectro.apk` depuis les [Releases](https://github.com/decmike91/spectro/releases/tag/apk-latest), puis lancer le serveur sur le Pi Zero (voir [`logiciel/serveur/README.md`](logiciel/serveur/README.md)). Détails dans [`android/README.md`](android/README.md).
+Installer `spectro.apk` depuis les [Releases](https://github.com/decmike91/spectro/releases/tag/apk-latest), puis installer le démarrage automatique sur le Pi Zero : `bash logiciel/demarrage/installer.sh` (voir [`logiciel/demarrage/README.md`](logiciel/demarrage/README.md)). Détails dans [`android/README.md`](android/README.md).
 
 ### Électronique et logiciel d'acquisition
 

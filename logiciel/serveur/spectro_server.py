@@ -311,7 +311,7 @@ class Engine(threading.Thread):
         self.last = {"t": time.time(), "tint_us": self._dev_tint, "averages": self.averages,
                      "black": round(black, 1), "max_raw": maxraw,
                      "saturated": maxraw >= SATURATION, "dark_id": self.live_dark_id,
-                     "values": y}
+                     "sub_black": self.sub_black, "values": y}
         self.publish({"type": "frame", **self.last})
 
     # ---- acquisitions et séquences ----------------------------------------------
