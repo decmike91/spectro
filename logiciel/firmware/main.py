@@ -1,22 +1,26 @@
 # =============================================================================
-#  Firmware d'acquisition TCD1304DG pour Raspberry Pi Pico (RP2040) - MicroPython
+#  Firmware d'acquisition TCD1304DG - MicroPython
+#  Cartes : RP2350-Zero (montage actuel), Pico 2 / Pico 2 W, ou Pico (RP2040).
+#  La puce est détectée au démarrage : le même fichier sert pour toutes.
 #  -----------------------------------------------------------------------------
 #  Rôle : générer les horloges du capteur (φM, SH, ICG) avec les PIO, et
 #  numériser la sortie OS avec l'ADC interne, déclenché pixel par pixel par la
 #  PIO via DMA (échantillonnage synchrone, sans aucune gigue logicielle).
-#  La trame (3694 valeurs 12 bits) est envoyée au Raspberry Pi Zero par USB.
+#  La trame (3694 valeurs 12 bits) est envoyée au Raspberry Pi Zero par USB (câble USB-C).
 #
 #  MicroPython >= 1.23 requis (classe rp2.DMA).
-#  Copier ce fichier sous le nom main.py sur le Pico (Thonny ou mpremote).
+#  MicroPython pour la RP2350-Zero : firmware « RPI_PICO2 » (micropython.org/download).
+#  Copier ce fichier sous le nom main.py sur la carte (Thonny ou mpremote).
 #
 #  Protocole (USB CDC, lignes texte terminées par \n) :
-#     I            -> "TCD1304 fw=1.0 npix=3694 fm=1000000 tint_us=10000\n"
+#     I            -> "TCD1304 fw=1.1 npix=3694 fm=1000000 tint_us=10000 mcu=RP2350\n"
 #     T <µs>       -> règle le temps d'intégration -> "OK tint_us=<réel>\n"
 #     R            -> lit une trame -> b"FRM:" + 3694 x uint16 little-endian
 #     P            -> "PONG\n"
 #  En cas d'erreur : "ERR <message>\n"
 # =============================================================================
 
+import os
 import sys
 import machine
 import rp2
@@ -40,21 +44,28 @@ ADC_CH  = 0              # GP26 = ADC0 <- sortie de l'ampli
 
 NPIX = const(3694)       # 16 dummy + 13 masqués + 3 dummy + 3648 utiles + 14 dummy
 
+LED_RGB = True           # True : RP2350-Zero (LED RGB WS2812) ; False : Pico (LED simple)
+PIN_RGB = 16             # broche de la WS2812 sur la RP2350-Zero
+
 # -----------------------------------------------------------------------------
-#  Registres RP2040
+#  Registres : RP2040 (Pico) ou RP2350 (RP2350-Zero, Pico 2)
+#  Les blocs PIO, ADC et DMA ont la même organisation ; seules les adresses de
+#  base, le numéro de DREQ de l'ADC et la position du champ OUTOVER changent.
 # -----------------------------------------------------------------------------
+RP2350 = "RP2350" in os.uname().machine
 SYS_HZ     = const(120_000_000)       # diviseurs PIO entiers pour 1 / 1.25 / 1.5 MHz
 PIO0_BASE  = const(0x50200000)
 PIO0_CTRL  = const(0x50200000)
 PIO0_RXF2  = const(0x50200028)        # FIFO RX de la SM2 (déclencheur ADC)
-ADC_BASE   = const(0x4004C000)
-ADC_CS     = const(0x4004C000)
-ADC_FCS    = const(0x4004C008)
-ADC_FIFO   = const(0x4004C00C)
-ADC_DIV    = const(0x4004C010)
-IO_BANK0   = const(0x40014000)
+ADC_BASE   = 0x400A0000 if RP2350 else 0x4004C000
+ADC_CS     = ADC_BASE
+ADC_FCS    = ADC_BASE + 0x08
+ADC_FIFO   = ADC_BASE + 0x0C
+ADC_DIV    = ADC_BASE + 0x10
+IO_BANK0   = 0x40028000 if RP2350 else 0x40014000
+OUTOVER    = 12 if RP2350 else 8      # GPIOx_CTRL.OUTOVER : bits 13:12 (RP2350), 9:8 (RP2040)
 DREQ_PIO0_RX2 = const(6)
-DREQ_ADC      = const(36)
+DREQ_ADC      = 48 if RP2350 else 36
 
 
 # -----------------------------------------------------------------------------
@@ -160,9 +171,9 @@ class TCD1304:
         self.sms = [sm0, sm1, sm2]
         for p in (PIN_FM, PIN_SH, PIN_ICG):     # inversion matérielle des sorties
             reg = IO_BANK0 + 8 * p + 4
-            v = mem32[reg] & ~(0x3 << 8)
+            v = mem32[reg] & ~(0x3 << OUTOVER)
             if INVERT_OUT:
-                v |= 0x1 << 8
+                v |= 0x1 << OUTOVER
             mem32[reg] = v
         sm1.put(d)
         sm2.put(NPIX - 1)
@@ -216,9 +227,36 @@ class TCD1304:
 # -----------------------------------------------------------------------------
 #  Boucle de commande USB
 # -----------------------------------------------------------------------------
+class Led:
+    """Témoin d'acquisition : LED simple des Pico, ou LED RGB WS2812 de la RP2350-Zero
+    (vert faible au repos = prêt, bleu pendant la lecture d'une trame)."""
+    def __init__(self):
+        self.rgb = None
+        if LED_RGB:
+            import neopixel   # CPU (bitstream) : n'utilise pas les PIO du capteur
+            self.rgb = neopixel.NeoPixel(Pin(PIN_RGB), 1)
+        else:
+            self.pin = Pin("LED", Pin.OUT)
+        self.off()
+
+    def on(self):
+        if self.rgb:
+            self.rgb[0] = (0, 0, 24)
+            self.rgb.write()
+        else:
+            self.pin.on()
+
+    def off(self):
+        if self.rgb:
+            self.rgb[0] = (0, 6, 0)
+            self.rgb.write()
+        else:
+            self.pin.off()
+
+
 def main():
     out = sys.stdout.buffer
-    led = Pin("LED", Pin.OUT)
+    led = Led()
     ccd = TCD1304()
     while True:
         line = sys.stdin.readline()
@@ -242,8 +280,8 @@ def main():
                 t = ccd.set_tint(int(cmd[1]))
                 out.write(b"OK tint_us=%d\n" % t)
             elif c == "I":
-                out.write(b"TCD1304 fw=1.0 npix=%d fm=%d tint_us=%d\n"
-                          % (NPIX, ccd.fm, ccd.tint_us))
+                out.write(b"TCD1304 fw=1.1 npix=%d fm=%d tint_us=%d mcu=%s\n"
+                          % (NPIX, ccd.fm, ccd.tint_us, b"RP2350" if RP2350 else b"RP2040"))
             elif c == "P":
                 out.write(b"PONG\n")
             else:

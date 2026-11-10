@@ -1,0 +1,20 @@
+# Service systemd : démarre le serveur du spectro au démarrage du Pi Zero.
+#   Installé par ../demarrage/installer.sh (utilisateur et chemin adaptés).
+#   À la main : sudo cp spectro.service /etc/systemd/system/ && sudo systemctl enable --now spectro
+[Unit]
+Description=Serveur du spectro TCD1304 (API pour l'appli Android)
+After=network-online.target
+Wants=network-online.target
+# réessayer sans limite (Pico branché après le démarrage, par exemple)
+StartLimitIntervalSec=0
+
+[Service]
+User=pi
+WorkingDirectory=/home/pi/spectro/logiciel/serveur
+ExecStart=/usr/bin/python3 /home/pi/spectro/logiciel/serveur/spectro_server.py --port 8080
+Restart=always
+RestartSec=3
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

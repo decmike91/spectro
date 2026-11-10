@@ -1,0 +1,74 @@
+name: Appli Android
+
+on:
+  push:
+    paths: ["android/**", ".github/workflows/android.yml"]
+  pull_request:
+    paths: ["android/**", ".github/workflows/android.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: android
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Serveur du Pi en simulateur (pour le test d'intégration)
+        working-directory: logiciel/serveur
+        run: |
+          pip install aiohttp numpy pyserial
+          nohup python spectro_server.py --sim --verbose --port 8080 --data /tmp/spectro_data --calib /tmp/calib.json > /tmp/serveur.log 2>&1 &
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:8080/api/status > /dev/null && break; sleep 1; done
+          curl -sf http://127.0.0.1:8080/api/status | head -c 200
+      - uses: gradle/actions/setup-gradle@v5
+      - name: Tests unitaires, test d'intégration et compilation
+        env:
+          SPECTRO_TEST_URL: "127.0.0.1:8080"
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon testDebugUnitTest assembleRelease
+      - name: Publier les captures d'écran (branche « captures »)
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          [ -d app/build/captures ] || exit 0
+          cd app/build/captures
+          git init -q && git checkout -q -b captures
+          git config user.name "github-actions" && git config user.email "actions@github.com"
+          git add . && git commit -qm "Captures d'écran ($GITHUB_REF_NAME ${GITHUB_SHA::7})"
+          git push -qf "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:captures
+      - name: Journal du serveur
+        if: always()
+        run: cat /tmp/serveur.log || true
+      - uses: actions/upload-artifact@v5
+        with:
+          name: spectro-apk
+          path: android/app/build/outputs/apk/release/*.apk
+      - uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: rapports-tests
+          path: android/app/build/reports/tests/
+      - name: Publier l'APK (lien de téléchargement direct)
+        if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/appli-android')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp app/build/outputs/apk/release/app-release.apk spectro.apk
+          gh release delete apk-latest -y --cleanup-tag || true
+          gh release create apk-latest spectro.apk --prerelease \
+            --title "Appli Android (dernière version)" \
+            --notes "APK compilé automatiquement depuis ${GITHUB_REF_NAME} (${GITHUB_SHA::7}). Ouvrir ce fichier sur le téléphone pour l'installer."
