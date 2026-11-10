@@ -22,7 +22,7 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - name: Serveur du Pi en simulateur (pour le test d'intégration)
@@ -32,7 +32,7 @@ jobs:
           nohup python spectro_server.py --sim --verbose --port 8080 --data /tmp/spectro_data --calib /tmp/calib.json > /tmp/serveur.log 2>&1 &
           for i in $(seq 1 30); do curl -sf http://127.0.0.1:8080/api/status > /dev/null && break; sleep 1; done
           curl -sf http://127.0.0.1:8080/api/status | head -c 200
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v5
       - name: Tests unitaires, test d'intégration et compilation
         env:
           SPECTRO_TEST_URL: "127.0.0.1:8080"
@@ -53,17 +53,17 @@ jobs:
       - name: Journal du serveur
         if: always()
         run: cat /tmp/serveur.log || true
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: spectro-apk
           path: android/app/build/outputs/apk/release/*.apk
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: always()
         with:
           name: rapports-tests
           path: android/app/build/reports/tests/
-      - name: Publier l'APK (branche main)
-        if: github.ref == 'refs/heads/main'
+      - name: Publier l'APK (lien de téléchargement direct)
+        if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/appli-android')
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -71,4 +71,4 @@ jobs:
           gh release delete apk-latest -y --cleanup-tag || true
           gh release create apk-latest spectro.apk --prerelease \
             --title "Appli Android (dernière version)" \
-            --notes "APK compilé automatiquement depuis main (${GITHUB_SHA::7}). Ouvrir ce fichier sur le téléphone pour l'installer."
+            --notes "APK compilé automatiquement depuis ${GITHUB_REF_NAME} (${GITHUB_SHA::7}). Ouvrir ce fichier sur le téléphone pour l'installer."
