@@ -14,34 +14,32 @@ def tag(d, name, at, direction="right"):
 with schemdraw.Drawing(file=None, show=False) as d:
     d.config(unit=2.5)
 
-    # ===================== BLOC 1 : Raspberry Pi Pico =========================
-    d += elm.Label().at((-1, 10.6)).label("① Raspberry Pi Pico (acquisition)", fontsize=13, halign="left")
+    # ===================== BLOC 1 : RP2350-Zero ==============================
+    d += elm.Label().at((-1, 10.6)).label("① RP2350-Zero (acquisition)", fontsize=13, halign="left")
     pico = d.add(elm.Ic(
-        pins=[IcPin("GP2", pin="4", side="right"),
-              IcPin("GP3", pin="5", side="right"),
-              IcPin("GP4", pin="6", side="right"),
-              IcPin("GP26/ADC0", pin="31", side="right"),
-              IcPin("VBUS", pin="40", side="left"),
-              IcPin("3V3(OUT)", pin="36", side="left"),
-              IcPin("ADC_VREF", pin="35", side="left"),
-              IcPin("GND", pin="38", side="left"),
-              IcPin("AGND", pin="33", side="left"),
-              IcPin("USB", side="top")],
+        pins=[IcPin("GP2", side="right"),
+              IcPin("GP3", side="right"),
+              IcPin("GP4", side="right"),
+              IcPin("GP26", side="right"),
+              IcPin("5V", side="left"),
+              IcPin("3V3", side="left"),
+              IcPin("GND", side="left"),
+              IcPin("USB-C", side="left")],
         edgepadW=1.0, pinspacing=0.9, w=5.0
     ).at((1.5, 3)))
-    for p, n in (("GP2", "CLK_M"), ("GP3", "CLK_SH"), ("GP4", "CLK_ICG"), ("GP26/ADC0", "ADC")):
+    for p, n in (("GP2", "CLK_M"), ("GP3", "CLK_SH"), ("GP4", "CLK_ICG"), ("GP26", "ADC")):
         d += elm.Line().right(1.0).at(getattr(pico, p))
         tag(d, n, d.here)
-    d += elm.Line().left(0.8).at(pico.VBUS)
+    d += elm.Line().left(0.8).at(getattr(pico, "5V"))
     tag(d, "+5V", d.here, "left")
-    d += elm.Line().left(0.8).at(getattr(pico, "3V3(OUT)"))
+    d += elm.Line().left(0.8).at(getattr(pico, "3V3"))
     tag(d, "+3V3", d.here, "left")
     d += elm.Line().left(0.8).at(pico.GND); d += elm.Ground()
-    d += elm.Line().left(0.8).at(pico.AGND); d += elm.Ground()
-    d += elm.Line().left(0.8).at(pico.ADC_VREF)
-    d += elm.Label().label("(non connecté)", fontsize=8, halign="right")
-    d += elm.Line().up(0.8).at(pico.USB)
-    d += elm.Label().label("micro-USB  ⇄  câble OTG  ⇄  port « USB » du\nRaspberry Pi Zero (données + alimentation 5 V)",
+    d += elm.Line().left(0.8).at(getattr(pico, "USB-C"))
+    d += elm.Line().up(1.6)
+    d += elm.Label().label("USB-C  ⇄  câble micro-USB / USB-C  ⇄  port « USB » du\n"
+                           "Raspberry Pi Zero (données + alimentation 5 V)\n"
+                           "Broches repérées par leur nom sérigraphié ; GP16 = LED RGB",
                            fontsize=9, valign="bottom")
 
     # ===================== BLOC 2 : Alimentation analogique ===================

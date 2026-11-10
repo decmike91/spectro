@@ -16,8 +16,8 @@ Spectroscope à réseau de diffraction pour petite lunette (conçu pour une 80/4
   - longueur d'onde (rotation du réseau) ;
   - tilt et orientation des traits du réseau ;
   - miroir de renvoi et capteur (3 vis chacun).
-- **Capteur** : Toshiba TCD1304DG (3648 pixels de 8 × 200 µm), piloté par un Raspberry Pi Pico. Un Raspberry Pi Zero 2 W fait l'affichage.
-- **Autonomie** : compartiment sous le plancher avec 2 accus 18650, le Pico, le Pi Zero et un ventilateur. Environ 8 h d'autonomie.
+- **Capteur** : Toshiba TCD1304DG (3648 pixels de 8 × 200 µm), piloté par une RP2350-Zero (microcontrôleur RP2350). Un Raspberry Pi Zero 2 W fait le serveur Wi-Fi et l'affichage.
+- **Autonomie** : compartiment sous le plancher avec 2 accus 18650 en parallèle (~7 Ah) protégés par une carte BMS, un module chargeur/boost USB-C 5 V 2 A (PENGLIN), la RP2350-Zero, le Pi Zero et un ventilateur. Environ 9 à 14 h d'autonomie ; sortie USB-A 5 V pour une résistance anti-buée. Voir [`docs/alimentation.md`](docs/alimentation.md).
 
 ## Contenu du dépôt
 
@@ -25,9 +25,9 @@ Spectroscope à réseau de diffraction pour petite lunette (conçu pour une 80/4
 | --- | --- |
 | [`docs/`](docs) | Dossier de conception complet (`dossier_conception.pdf`) et images (vues 3D, schéma électronique) |
 | [`optique/`](optique) | `optique.py` : bilan optique (plage couverte, dispersion, résolution par réseau et par fente) |
-| [`mecanique/v2/`](mecanique/v2) | Version actuelle : modèle paramétrique CadQuery `spectro_v2.py`, vérifications, **24 STL à imprimer** et STEP d'assemblage (`export_v2/`) |
+| [`mecanique/v2/`](mecanique/v2) | Version actuelle : modèle paramétrique CadQuery `spectro_v2.py`, vérifications, **25 STL à imprimer** et STEP d'assemblage (`export_v2/`) |
 | [`mecanique/v1/`](mecanique/v1) | Première version (sans miroir ni réglages de mise au point), gardée pour comparaison |
-| [`logiciel/`](logiciel) | Électronique et logiciel : firmware MicroPython du Pico, pilote Python, interface graphique PyQt5, schéma électronique — voir [`logiciel/README.md`](logiciel/README.md) |
+| [`logiciel/`](logiciel) | Électronique et logiciel : firmware MicroPython de la RP2350-Zero, pilote Python, interface graphique PyQt5, schéma électronique — voir [`logiciel/README.md`](logiciel/README.md) |
 | [`logiciel/serveur/`](logiciel/serveur) | Serveur du Pi Zero (API HTTP + WebSocket) utilisé par l'appli Android : acquisitions, séquences, bibliothèque, étalonnage, ventilateur |
 | [`logiciel/demarrage/`](logiciel/demarrage) | Démarrage automatique au boot du Pi : serveur, annonce réseau et interface à l'écran (`installer.sh`) |
 | [`android/`](android) | Appli Android (Kotlin, Jetpack Compose) : direct, séquences, bibliothèque, traitements, analyse des raies, étalonnage — APK dans les [Releases](https://github.com/decmike91/spectro/releases/tag/apk-latest) |
@@ -36,7 +36,7 @@ Spectroscope à réseau de diffraction pour petite lunette (conçu pour une 80/4
 
 ### Imprimer le spectro
 
-Les fichiers à imprimer sont dans `mecanique/v2/export_v2/` (fichiers `01_` à `24_`). Imprimer en PETG ou en ASA noir mat, avec 4 périmètres et 40 % de remplissage gyroïde. Le jeu d'impression de 0,25 mm est déjà inclus. L'orientation conseillée pour chaque pièce est indiquée dans le dossier de conception.
+Les fichiers à imprimer sont dans `mecanique/v2/export_v2/` (fichiers `01_` à `25_`). Imprimer en PETG ou en ASA noir mat, avec 4 périmètres et 40 % de remplissage gyroïde. Le jeu d'impression de 0,25 mm est déjà inclus. L'orientation conseillée pour chaque pièce est indiquée dans le dossier de conception.
 
 ### Régénérer ou modifier la mécanique
 
@@ -46,6 +46,7 @@ cd mecanique/v2
 python3 spectro_v2.py        # régénère export_v2/*.stl et le STEP
 python3 check_v2.py          # collisions sur toute la plage de rotation et de mise au point
 python3 run_checks_v2.py     # aucun faisceau coupé
+python3 check_compartiment.py  # composants du compartiment électronique : aucune collision
 ```
 
 Tous les paramètres sont regroupés en tête de `spectro_v2.py` : focales, angles, jeux d'impression, dimensions du compartiment électronique.
@@ -62,7 +63,7 @@ Installer `spectro.apk` depuis les [Releases](https://github.com/decmike91/spect
 
 ### Électronique et logiciel d'acquisition
 
-Voir [`logiciel/README.md`](logiciel/README.md) : schéma, câblage, installation du firmware sur le Pico et de l'interface sur le Pi Zero. Pour tester l'interface sans matériel :
+Voir [`logiciel/README.md`](logiciel/README.md) : schéma, câblage, installation du firmware sur la RP2350-Zero et de l'interface sur le Pi Zero. Pour tester l'interface sans matériel :
 
 ```bash
 pip install -r logiciel/requirements.txt

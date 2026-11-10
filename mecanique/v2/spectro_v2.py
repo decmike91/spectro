@@ -405,18 +405,37 @@ def cam_back_X():
     return X
 
 # ------------------------------------------------------------------ COMPARTIMENT ELECTRONIQUE (sous le plancher)
-# Baie A : 2 x 18650 en parallele (support ~77x41x20) + module chargeur/boost 5 V USB-C (~45x28x10)
-# Baie B : Raspberry Pi Pico (51x21) cote avant, pres du capteur ; Raspberry Pi Zero (65x30) ;
-#          ventilateur 25x25x10 5 V en extraction sur la face arriere, entrees d'air sur la face avant.
+# Baie A (y < cloison) : 2 x 18650 en PARALLELE (1S2P, ~7 Ah) dans un support 2 x 18650 (~77x41x20),
+#   tenu par 2 sangles velcro / colliers passant dans les montants ; carte BMS 1S 3 A (DW01A+FS8205A) ;
+#   module PENGLIN chargeur/boost 5 V 2 A (carte 25x20, USB-C dessus, USB-A dessous) glisse dans
+#   un berceau, connecteurs contre la face arriere : USB-C = charge, USB-A = sortie 5 V auxiliaire
+#   (resistance chauffante anti-buee). Interrupteur a bascule sur le cote -y (coupe le 5 V interne).
+# Baie B : carte d'interface (plaque a pastilles 50x30) portant la RP2350-Zero sur barrettes femelles,
+#   le MOSFET du ventilateur et le depart du cable vers la carte capteur ; Raspberry Pi Zero (65x30) ;
+#   ventilateur 25x25x10 5 V en extraction sur la face arriere, entrees d'air sur la face avant.
 # Tout est suspendu au plafond du compartiment ; le fond est un couvercle coulissant.
 BAT_X0, BAT_X1, BAT_Y0, BAT_Y1 = 24.0, 166.0, -36.0, 60.0
 BAT_H, BAT_TOP = 31.0, 2.5
 Y_CLOISON = 16.0
 BAT_SCREWS = [(30, -30), (161, -32), (30, 12), (161, 12), (60, 55), (130, 55)]
-PICO = dict(x=30, y=27, w=51, d=21, holes=[(2, 4.8), (49, 4.8), (2, 16.2), (49, 16.2)], drill=1.0)      # M2
+HOLDER = dict(x=35.5, y=-29.5, w=77.0, d=41.0, h=20.0)        # support 2 x 18650
+STRAPS = (52.0, 96.0)                                          # x des sangles de maintien
+BMS = dict(x=114.0, y=-12.0, w=20.0, d=8.0, h=3.5)             # carte BMS 1S (collee)
+PEN = dict(x=137.0, y=-18.0, w=25.0, d=20.0, zb=-6.0)          # module PENGLIN (zb : dessus carte / plafond)
+IFB = dict(x=30, y=20, w=50, d=30, holes=[(3, 3), (47, 3), (3, 27), (47, 27)], drill=1.0)    # M2, plaque a pastilles
+RPZ = dict(x=33.0, y=26.0, w=23.5, d=18.0)                     # RP2350-Zero (USB-C vers +x)
 PIZ  = dict(x=86, y=20, w=65, d=30, holes=[(3.5, 3.5), (61.5, 3.5), (3.5, 26.5), (61.5, 26.5)], drill=1.1)  # M2.5
 FAN  = dict(x=163 - 10, yc=36.5, s=25.0, hole=20.0)
+IFB_STANDOFF = 4.0
+SW_X = 115.0                                                   # interrupteur a bascule (decoupe 19,5 x 13,5)
+PEN_RAIL = 5.3                                                 # largeur des rails du berceau PENGLIN
+def pen_screws():
+    return [(PEN["x"] + 5, PEN["y"] - PEN_RAIL/2 - 0.15), (PEN["x"] + 5, PEN["y"] + PEN["d"] + PEN_RAIL/2 + 0.15)]
 def _ztop(): return -FLOOR - BAT_TOP
+def _pen_z():
+    """(z dessus carte, z dessous carte) du module PENGLIN"""
+    zt = _ztop(); top = zt + PEN["zb"]
+    return top, top - 1.6
 def compartiment_batterie():
     w, d = BAT_X1 - BAT_X0, BAT_Y1 - BAT_Y0
     cx, cy = (BAT_X0 + BAT_X1)/2, (BAT_Y0 + BAT_Y1)/2
@@ -434,11 +453,36 @@ def compartiment_batterie():
     for x, y in BAT_SCREWS:
         c = c.union(W().circle(4.5).extrude(10).translate((x, y, zt - 10 + 0.01)))
         c = c.cut(W().circle(INS_M3/2).extrude(8).translate((x, y, -FLOOR - 8)))
-    # entretoises (plafond) pour le Pico et le Pi Zero
-    for B_ in (PICO, PIZ):
+    # --- baie A : montants des sangles du support d'accus (fente 12 x 2,5 sous le support)
+    H = HOLDER
+    zh = zt - H["h"]                                   # dessous du support
+    for xs in STRAPS:
+        for y0, y1 in ((BAT_Y0 + 3, H["y"] - 0.5), (H["y"] + H["d"] + 0.5, Y_CLOISON)):
+            post = W().box(16, y1 - y0, H["h"] + 4.5, centered=(True, False, False)).translate((xs, y0, zh - 4.5))
+            post = post.cut(W().box(12, y1 - y0 + 2, 2.5, centered=(True, False, False)).translate((xs, y0 - 1, zh - 3.2)))
+            c = c.union(post)
+    # --- baie A : berceau du module PENGLIN : deux rails (rebord de 0,8 mm sur la carte, guidage
+    #     lateral), la bride 25 serree par 2 vis M2 plaque la carte contre les rebords et bute
+    #     contre le corps de l'USB-A quand on enfiche une fiche (aucun recul possible).
+    top, bot = _pen_z()
+    for y_outer, y_ledge in (((PEN["y"] - PEN_RAIL, PEN["y"] - 0.3), (PEN["y"] - 0.3, PEN["y"] + 0.8)),
+                             ((PEN["y"] + PEN["d"] + 0.3, PEN["y"] + PEN["d"] + PEN_RAIL), (PEN["y"] + PEN["d"] - 0.8, PEN["y"] + PEN["d"] + 0.3))):
+        rail = W().box(PEN["w"] + 1, y_outer[1] - y_outer[0], zt - bot + 0.01, centered=False).translate((PEN["x"] - 1, y_outer[0], bot))
+        rail = rail.union(W().box(PEN["w"] + 1, y_ledge[1] - y_ledge[0], zt - top + 0.01, centered=False).translate((PEN["x"] - 1, y_ledge[0], top)))
+        c = c.union(rail)
+    for x, y in pen_screws():
+        c = c.cut(W().circle(0.8).extrude(6).translate((x, y, bot - 0.01)))          # M2 autotaraudeuse
+    # fenetre USB-C (charge) + USB-A (sortie 5 V) dans la face arriere
+    zc = top + 1.6                                     # axe USB-C (3,2 mm au-dessus de la carte)
+    za = bot - 3.5                                     # axe USB-A (7 mm sous la carte)
+    yc = PEN["y"] + PEN["d"]/2
+    c = c.cut(W().box(10, 13.5, 7.5, centered=(False, True, True)).translate((BAT_X1 - 5, yc, zc)))
+    c = c.cut(W().box(10, 16.5, 9.5, centered=(False, True, True)).translate((BAT_X1 - 5, yc, za)))
+    # --- baie B : entretoises de la carte d'interface et du Pi Zero
+    for B_, hs in ((IFB, IFB_STANDOFF), (PIZ, 4.0)):
         for hx, hy in B_["holes"]:
-            c = c.union(W().circle(2.6).extrude(4).translate((B_["x"] + hx, B_["y"] + hy, zt - 4 + 0.01)))
-            c = c.cut(W().circle(B_["drill"]).extrude(6).translate((B_["x"] + hx, B_["y"] + hy, zt - 5)))
+            c = c.union(W().circle(2.6).extrude(hs).translate((B_["x"] + hx, B_["y"] + hy, zt - hs + 0.01)))
+            c = c.cut(W().circle(B_["drill"]).extrude(hs + 2).translate((B_["x"] + hx, B_["y"] + hy, zt - hs - 1)))
     # ventilateur : 4 vis + grille dans la face arriere (extraction)
     zf = zt - FAN["s"]/2 - 0.5
     for dy in (-1, 1):
@@ -452,10 +496,8 @@ def compartiment_batterie():
     for i in range(4):
         c = c.cut(W().box(10, 26, 2.2).translate((BAT_X0, 32, zt - 6 - i*5)))
     c = c.cut(cyl_x(3.2, 10, BAT_X0 - 5, 52, zt - 8))
-    # baie accus : USB-C + LED de charge (arriere), interrupteur (cote -y)
-    c = c.cut(W().box(10, 10, 4.5).translate((BAT_X1 - 1.5, -7, z0 + 9)))
-    c = c.cut(cyl_x(1.6, 10, BAT_X1 - 5, -15, z0 + 9))
-    c = c.cut(W().box(19.5, 10, 13.5).translate((134, BAT_Y0 + 1.5, z0 + 15)))
+    # interrupteur a bascule (cote -y, baie A)
+    c = c.cut(W().box(19.5, 10, 13.5).translate((SW_X, BAT_Y0 + 1.5, z0 + 15)))
     return c
 
 def couvercle_batterie():
@@ -465,19 +507,48 @@ def couvercle_batterie():
     t = W().box(w - 3 - CLR, d - 3.4 - 2*CLR, 1.8 - 2*CLR, centered=(True, True, False)).translate((cx + 1.5, cy, z0 + 0.6 + CLR))
     t = t.union(W().box(w - 3 - CLR, d - 6 - 2*CLR, 0.6 + CLR, centered=(True, True, False)).translate((cx + 1.5, cy, z0)))
     t = t.union(W().box(4, d - 10, 4, centered=(True, True, False)).translate((BAT_X1 - 2, cy, z0 - 4 + 0.6)))  # tirette
-    for x in (40, 52, 64, 76):                     # entrees d'air sous le Pico
+    for x in (40, 52, 64, 76):                     # entrees d'air sous la carte d'interface
         t = t.cut(W().box(2.2, 20, 10).translate((x, 37, z0)))
     return t
 
+def bride_penglin():
+    """Piece 25 : bride sous le module PENGLIN (2 vis M2 x 6). Son bord +x bute contre l'USB-A."""
+    top, bot = _pen_z()
+    x1 = PEN["x"] + PEN["w"] - 14.5
+    b = W().box(x1 - PEN["x"] + 1, PEN["d"] + 2*PEN_RAIL, 2.0, centered=False).translate((PEN["x"] - 1, PEN["y"] - PEN_RAIL, bot - 2.0))
+    for x, y in pen_screws():
+        b = b.cut(W().circle(1.1).extrude(4).translate((x, y, bot - 3)))
+    b = b.cut(W().box(x1 - PEN["x"] - 8, PEN["d"] - 6, 4, centered=False).translate((PEN["x"] + 9, PEN["y"] + 3, bot - 3)))  # allegement
+    return b
+
+def electronique_dummies():
+    """Volumes des composants (verification des interferences et rendus)."""
+    zt = _ztop(); H = HOLDER
+    top, bot = _pen_z()
+    zi = zt - IFB_STANDOFF                         # dessus de la carte d'interface
+    d = {
+        "accus": W().box(H["w"], H["d"], H["h"], centered=False).translate((H["x"], H["y"], zt - H["h"])),
+        "bms": W().box(BMS["w"], BMS["d"], BMS["h"], centered=False).translate((BMS["x"], BMS["y"], zt - BMS["h"])),
+        "penglin": W().box(PEN["w"], PEN["d"], 1.6, centered=False).translate((PEN["x"], PEN["y"], bot))
+                   .union(W().box(7.5, 9.0, 3.2, centered=False).translate((PEN["x"] + PEN["w"] - 6.5, PEN["y"] + PEN["d"]/2 - 4.5, top)))
+                   .union(W().box(14.0, 13.1, 7.0, centered=False).translate((PEN["x"] + PEN["w"] - 13.0, PEN["y"] + PEN["d"]/2 - 6.55, bot - 7.0)))
+                   .union(W().box(6.0, 6.0, 3.0, centered=False).translate((PEN["x"] + 4, PEN["y"] + 3, top))),   # self 2R2
+        "carte_interface": W().box(IFB["w"], IFB["d"], 1.6, centered=False).translate((IFB["x"], IFB["y"], zi - 1.6))
+                   .union(W().box(23.0, 2.6, 8.5, centered=False).translate((RPZ["x"] + 0.25, RPZ["y"] - 0.2, zi - 1.6 - 8.5)))
+                   .union(W().box(23.0, 2.6, 8.5, centered=False).translate((RPZ["x"] + 0.25, RPZ["y"] + RPZ["d"] - 2.4, zi - 1.6 - 8.5))),
+        "rp2350_zero": W().box(RPZ["w"], RPZ["d"], 1.6 + 2.5, centered=False).translate((RPZ["x"], RPZ["y"], zi - 1.6 - 8.5 - 4.1))
+                   .union(W().box(7.5, 9.0, 3.2, centered=False).translate((RPZ["x"] + RPZ["w"] - 6.5, RPZ["y"] + RPZ["d"]/2 - 4.5, zi - 1.6 - 8.5 - 4.1 - 3.2))),
+        "fiche_usb_c": W().box(22.0, 12.0, 7.0, centered=False).translate((RPZ["x"] + RPZ["w"] + 0.5, RPZ["y"] + RPZ["d"]/2 - 6, zi - 1.6 - 8.5 - 4.1 - 3.2 - 1.9)),
+        "pi_zero": W().box(PIZ["w"], PIZ["d"], 5, centered=False).translate((PIZ["x"], PIZ["y"], zt - 4 - 5)),
+        "ventilateur": W().box(10, FAN["s"], FAN["s"], centered=(False, True, True)).translate((FAN["x"], FAN["yc"], zt - FAN["s"]/2 - 0.5)),
+        "interrupteur": W().box(19.0, 16.0, 13.0, centered=False).translate((SW_X + 0.25, BAT_Y0 + 3, -FLOOR - BAT_H + 15.25)),
+    }
+    return d
+
 def accus_dummy():
-    zt = _ztop()
-    parts_ = [W().box(77, 41, 20, centered=(False, False, False)).translate((35.5, -32, zt - 20)),     # accus
-              W().box(45, 28, 10, centered=(False, False, False)).translate((116, -21, zt - 10)),    # chargeur
-              W().box(PICO["w"], PICO["d"], 4, centered=(False, False, False)).translate((PICO["x"], PICO["y"], zt - 4 - 4)),
-              W().box(PIZ["w"], PIZ["d"], 5, centered=(False, False, False)).translate((PIZ["x"], PIZ["y"], zt - 4 - 5)),
-              W().box(10, FAN["s"], FAN["s"], centered=(False, True, True)).translate((FAN["x"], FAN["yc"], zt - FAN["s"]/2 - 0.5))]
-    r = parts_[0]
-    for p in parts_[1:]: r = r.union(p)
+    r = None
+    for v in electronique_dummies().values():
+        r = v if r is None else r.union(v)
     return r
 
 # ------------------------------------------------------------------ assemblage
@@ -504,6 +575,7 @@ def parts(phi=PHI_NOM, focus=0.0):
         "18_masque_capteur": sens(masque_Se()),
         "23_compartiment_batterie": compartiment_batterie(),
         "24_couvercle_batterie": couvercle_batterie(),
+        "25_bride_penglin": bride_penglin(),
     }
     extra = {"19_capuchon_source": capuchon_source(), "20_porte_relais": porte_relais(),
              "21_bague_lentille": bague_lentille(), "22_bouton_x3": bouton()}
