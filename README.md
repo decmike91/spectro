@@ -36,7 +36,9 @@ Spectroscope à réseau de diffraction pour petite lunette (conçu pour une 80/4
 
 ### Imprimer le spectro
 
-**Téléchargement direct de toutes les pièces (zip)** : https://github.com/decmike91/spectro/releases/download/stl-latest/spectro_v2_stl.zip
+**Téléchargement direct de toutes les pièces (zip : STL, STEP et FreeCAD)** : https://github.com/decmike91/spectro/releases/download/stl-latest/spectro_v2_stl.zip
+
+Fichiers FreeCAD (atelier Part) : [`mecanique/v2/freecad/`](mecanique/v2/freecad) — l'assemblage complet et une pièce par fichier.
 
 Les fichiers à imprimer sont dans `mecanique/v2/export_v2/` (fichiers `01_` à `25_`). Chaque pièce est déjà posée sur le plateau, sur sa plus grande face plane, et centrée : il suffit de l'ouvrir dans le trancheur. Pour télécharger un fichier seul depuis GitHub, ouvrir le fichier puis utiliser le bouton « Download raw file » (un clic droit « Enregistrer sous » sur le lien enregistre la page web, pas le STL). Imprimer en PETG ou en ASA noir mat, avec 4 périmètres et 40 % de remplissage gyroïde. Le jeu d'impression de 0,25 mm est déjà inclus. L'orientation conseillée pour chaque pièce est indiquée dans le dossier de conception.
 

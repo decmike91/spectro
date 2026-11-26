@@ -5,6 +5,7 @@ on:
     branches: [main, appli-android]
     paths:
       - "mecanique/v2/export_v2/**"
+      - "mecanique/v2/freecad/**"
       - ".github/workflows/stl.yml"
   workflow_dispatch:
 
@@ -22,8 +23,10 @@ jobs:
         run: |
           cd mecanique/v2/export_v2
           zip -q -9 ../../../spectro_v2_stl.zip *.stl spectro_v2_assemblage.step
-          cd ../../..
+          cd ..
+          zip -q -9 -r ../../spectro_v2_stl.zip freecad
+          cd ../..
           gh release delete stl-latest -y --cleanup-tag || true
           gh release create stl-latest spectro_v2_stl.zip --target "$GITHUB_SHA" \
             --title "Pièces à imprimer (STL)" \
-            --notes "25 pièces STL posées sur le plateau et centrées, plus le STEP d'assemblage (${GITHUB_REF_NAME}, ${GITHUB_SHA::7}). PETG ou ASA noir mat, 4 périmètres, 40 % gyroïde."
+            --notes "25 pièces STL posées sur le plateau et centrées, plus le STEP d'assemblage et les fichiers FreeCAD (dossier freecad/) (${GITHUB_REF_NAME}, ${GITHUB_SHA::7}). PETG ou ASA noir mat, 4 périmètres, 40 % gyroïde."

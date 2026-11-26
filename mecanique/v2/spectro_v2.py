@@ -153,6 +153,9 @@ def plateau_L():
     for sx in (-1, 1):   # oreilles de charniere
         p = p.union(W().box(3.5, 8, 6, centered=(True, False, False)).translate((sx*26.25, 4, Z_PLAT + 3)))
         p = p.union(W().box(3.4, 3, 2.5, centered=(True, False, False)).translate((sx*26.3, 9.5, Z_PLAT + 3)))
+        # pont reliant l'oreille a l'equerre (sans lui, l'oreille etait detachee de 0,5 mm) ;
+        # y >= 11,5 : 0,5 mm de jeu avec les charnieres du cadre basculant (y <= 11)
+        p = p.union(W().box(5, 1.5, 2.5, centered=(True, False, False)).translate((sx*25.5, 11.5, Z_PLAT + 3)))
     p = p.cut(cyl_x(1.6, 60, -30, 7, Z_PLAT + 6.5))                            # axe de charniere O3
     p = p.cut(W().circle(2.2).extrude(20).translate((0, 0, Z_PLAT - 2)))        # pivot M4
     # vis tirante du tilt : traverse l'equerre en haut
