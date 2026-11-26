@@ -15,7 +15,7 @@ Reglages :
                         orientation des traits / roll (disque porte-reseau tournant + vis M3 + ressort)
   * miroir            : 3 vis M3 + ressorts depuis l'exterieur (tip / tilt / piston)
   * capteur           : 3 vis M3 + ressorts depuis l'exterieur (focus fin / tip / tilt)
-Lancer : python3 spectro_v2.py  -> export_v2/*.stl + spectro_v2_assemblage.step
+Lancer : python3 spectro_v2.py  -> export_v2/*.stl (posés sur le plateau) + spectro_v2_assemblage.step
 """
 import math, os
 import cadquery as cq
@@ -584,12 +584,37 @@ def parts(phi=PHI_NOM, focus=0.0):
                "vis_coll": vis_coll(), "vis_cam": vis_cam(), "vis_lambda": vis_lambda(phi)}
     return P, extra, dummies
 
+def pose_impression(wp):
+    """Pose une piece pour l'impression : essaie les 6 faces de l'enveloppe comme face
+    du dessous, garde celle qui offre la plus grande surface plane au contact du plateau
+    (a egalite, la moins haute), puis centre la piece en X/Y et la pose sur Z = 0.
+    Les fichiers STL ont ainsi un sens pour un trancheur ; le STEP garde l'assemblage."""
+    rots = [((1, 0, 0), 0), ((1, 0, 0), 180), ((1, 0, 0), 90), ((1, 0, 0), -90),
+            ((0, 1, 0), 90), ((0, 1, 0), -90)]
+    best = None
+    for ax, ang in rots:
+        r = wp.rotate((0, 0, 0), ax, ang) if ang else wp
+        bb = r.val().BoundingBox()
+        contact = 0.0
+        for f in r.faces().vals():
+            if f.geomType() != "PLANE":
+                continue
+            fb = f.BoundingBox()
+            if fb.zlen < 1e-3 and abs(fb.zmin - bb.zmin) < 1e-3:
+                contact += f.Area()
+        key = (round(contact, 1), -bb.zlen)
+        if best is None or key > best[0]:
+            best = (key, r)
+    r = best[1]
+    bb = r.val().BoundingBox()
+    return r.translate((-bb.center.x, -bb.center.y, -bb.zmin))
+
 if __name__ == "__main__":
     os.makedirs("export_v2", exist_ok=True)
     P, extra, dummies = parts()
     asm = cq.Assembly()
     for k, v in {**P, **extra}.items():
-        cq.exporters.export(v, f"export_v2/{k}.stl", tolerance=0.05, angularTolerance=0.2)
+        cq.exporters.export(pose_impression(v), f"export_v2/{k}.stl", tolerance=0.05, angularTolerance=0.2)
         if k in P: asm.add(v, name=k)
         print("ok", k)
     for k, v in dummies.items():
