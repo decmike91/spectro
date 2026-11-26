@@ -29,4 +29,4 @@ jobs:
           gh release delete stl-latest -y --cleanup-tag || true
           gh release create stl-latest spectro_v2_stl.zip --target "$GITHUB_SHA" \
             --title "Pièces à imprimer (STL)" \
-            --notes "25 pièces STL posées sur le plateau et centrées, plus le STEP d'assemblage et les fichiers FreeCAD (dossier freecad/) (${GITHUB_REF_NAME}, ${GITHUB_SHA::7}). PETG ou ASA noir mat, 4 périmètres, 40 % gyroïde."
+            --notes "26 pièces STL posées sur le plateau et centrées, plus le STEP d'assemblage et les fichiers FreeCAD (dossier freecad/) (${GITHUB_REF_NAME}, ${GITHUB_SHA::7}). PETG ou ASA noir mat, 4 périmètres, 40 % gyroïde."

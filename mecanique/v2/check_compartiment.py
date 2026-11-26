@@ -1,44 +1,60 @@
-"""Verification du compartiment electronique : aucun composant ne touche les parois,
-le couvercle, la bride ou un autre composant ; chaque composant est dans le volume."""
+"""Verification du module electronique et du capot capteur : aucun composant ne touche le bac,
+le couvercle, la bride, le capot ou un autre composant ; le capot ne touche ni le boitier,
+ni la tete de fente, ni la carte capteur ; le module ne touche pas le boitier."""
 import itertools
 import spectro_v2 as S
 
 def vol(a, b):
     try:
-        return a.intersect(b).val().Volume()
+        return sum(s.Volume() for s in a.intersect(b).solids().vals())
     except Exception:
         return 0.0
 
-comp = S.compartiment_batterie()
-lid = S.couvercle_batterie()
-bride = S.bride_penglin()
+bac, lid, bride, capot = S.bac_electronique(), S.couvercle_electronique(), S.bride_penglin(), S.capot_capteur()
+boit = S.boitier()
+tete = S.head_world(S.tete_local())
+plaque = S.sens(S.plaque_capteur_Se())
+carte = S.carte_capteur_dummy()
 D = S.electronique_dummies()
 fails = 0
+def bad(msg):
+    global fails; print("  ✗", msg); fails += 1
+
 for k, v in D.items():
-    for nom, piece in (("compartiment", comp), ("couvercle", lid), ("bride", bride)):
+    for nom, piece in (("bac", bac), ("couvercle", lid), ("bride", bride)):
         x = vol(v, piece)
-        if x > 0.01:
-            # la bride doit TOUCHER le module sans le penetrer ; la fiche USB-C est hors de la carte
-            print(f"  ✗ {k} / {nom} : {x:.2f} mm3"); fails += 1
+        if x > 0.01: bad(f"{k} / {nom} : {x:.2f} mm3")
 for (a, va), (b, vb) in itertools.combinations(D.items(), 2):
     if {a, b} in ({"carte_interface", "rp2350_zero"}, {"rp2350_zero", "fiche_usb_c"}):
-        continue                                  # emboitement voulu
+        continue
     x = vol(va, vb)
-    if x > 0.01:
-        print(f"  ✗ {a} / {b} : {x:.2f} mm3"); fails += 1
-# contact bride / module (doit etre au contact : distance ~0)
+    if x > 0.01: bad(f"{a} / {b} : {x:.2f} mm3")
+for nom, piece in (("boitier", boit), ("tete de fente", tete), ("plaque capteur", plaque), ("carte capteur", carte),
+                   ("couvercle module", lid), ("bac", bac)):
+    x = vol(capot, piece)
+    if x > 0.01: bad(f"capot / {nom} : {x:.2f} mm3")
+for nom, piece in (("bac", bac), ("couvercle", lid)):
+    x = vol(piece, boit)
+    if x > 0.01: bad(f"{nom} / boitier : {x:.2f} mm3")
+x = vol(bac, lid)
+if x > 0.01: bad(f"bac / couvercle : {x:.2f} mm3")
+x = vol(carte, boit)
+if x > 0.01: bad(f"carte capteur / boitier : {x:.2f} mm3")
+
 top, bot = S._pen_z()
 bb = bride.val().BoundingBox()
-print(f"bride : dessus z={bb.zmax:.2f}, dessous carte PENGLIN z={bot:.2f}")
-if abs(bb.zmax - bot) > 0.05:
-    print("  ✗ la bride ne serre pas la carte"); fails += 1
-# butee USB-A
-usba_x0 = S.PEN["x"] + S.PEN["w"] - 13.0
-print(f"butee : bord bride x={bb.xmax:.1f}, corps USB-A x={usba_x0:.1f} (jeu {usba_x0 - bb.xmax:.1f} mm)")
-# volume interieur libre sous les composants (couvercle coulissant)
-z_lid = -S.FLOOR - S.BAT_H + 2.4
+if abs(bb.zmin - top) > 0.05: bad("la bride ne serre pas la carte PENGLIN")
+print(f"butee bride / USB-A : jeu {S.PEN['x'] + S.PEN['w'] - 13.0 - bb.xmax:.1f} mm")
 for k, v in D.items():
     b = v.val().BoundingBox()
-    if b.zmin < z_lid + 0.5:
-        print(f"  ✗ {k} trop bas : {b.zmin:.1f} < {z_lid + 0.5:.1f}"); fails += 1
-print("Compartiment :", "OK" if fails == 0 else f"{fails} PROBLEME(S)")
+    if b.zmax > S.Z_LID_BOT - 2.5 - 0.3 and k not in ():
+        print(f"  ! {k} : sommet {b.zmax - S.Z_F:.1f} mm au-dessus du fond (levre du couvercle a {S.Z_LID_BOT - 2.5 - S.Z_F:.1f})")
+# le capot ferme bien la zone du capteur : la fente des fils est sous le capot
+x0, x1, y0, y1 = S.CABLE_SLOT
+cb = capot.val().BoundingBox()
+if not (cb.xmin < x0 and cb.ymin < y0 and y1 < cb.ymax): bad("fente des fils hors du capot")
+# carte capteur entierement sous le capot
+kb = carte.val().BoundingBox()
+if not (kb.xmin > cb.xmin and kb.ymax < cb.ymax and kb.zmax < cb.zmax): bad("carte capteur non couverte")
+print(f"module : {S.Z_LID_TOP - S.Z_TRAY_BOT:.1f} mm sous le plancher ; hauteur totale {S.H_INT + 3 - S.Z_TRAY_BOT + 0:.1f} mm (couvercle optique compris)")
+print("Module electronique et capot :", "OK" if fails == 0 else f"{fails} PROBLEME(S)")
