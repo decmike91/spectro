@@ -5,7 +5,7 @@ Ouvrir avec FreeCAD 1.0 ou plus récent.
 | Fichier | Contenu |
 | --- | --- |
 | `spectro_v2_assemblage.FCStd` | Assemblage complet : pièces imprimées (groupe « Pièces imprimées ») et composants factices (réseau, miroir, capteur, électronique, vis) à leur place. Couvercles transparents. |
-| `pieces/01_boitier.FCStd` … `pieces/26_capot_capteur.FCStd` | Une pièce par fichier, posée sur le plateau et centrée, comme les STL. |
+| `pieces/01_boitier.FCStd` … `pieces/25_capot_capteur.FCStd` | Une pièce par fichier, posée sur le plateau et centrée, comme les STL. |
 
 Chaque pièce est un solide exact (`Part::Feature`, géométrie B-rep, pas un maillage) : on peut la
 mesurer, la couper (Part → Booléen), y ajouter des formes, ou l'exporter en STEP / STL depuis FreeCAD.

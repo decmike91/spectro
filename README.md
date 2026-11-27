@@ -17,7 +17,7 @@ Spectroscope à réseau de diffraction pour petite lunette (conçu pour une 80/4
   - tilt et orientation des traits du réseau ;
   - miroir de renvoi et capteur (3 vis chacun).
 - **Capteur** : Toshiba TCD1304DG (3648 pixels de 8 × 200 µm), piloté par une RP2350-Zero (microcontrôleur RP2350). Un Raspberry Pi Zero 2 W fait le serveur Wi-Fi et l'affichage.
-- **Autonomie** : module électronique dans le prolongement du boîtier, en dessous (même contour, démontable par 8 vis sans ouvrir l'optique), avec 2 accus 18650 en parallèle (~7 Ah) protégés par une carte BMS, un module chargeur/boost USB-C 5 V 2 A (PENGLIN), la RP2350-Zero, le Pi Zero et un ventilateur. Environ 9 à 14 h d'autonomie ; sortie USB-A 5 V pour une résistance anti-buée. Un capot ferme la zone du capteur et protège ses fils jusqu'au module. Voir [`docs/alimentation.md`](docs/alimentation.md).
+- **Autonomie** : module électronique dans le prolongement du boîtier, en dessous (même contour, plaqué sous le plancher, démontable par 8 vis sans ouvrir l'optique), avec 2 accus 18650 en parallèle (~7 Ah) protégés par une carte BMS, un module chargeur/boost USB-C 5 V 2 A (PENGLIN), la RP2350-Zero, le Pi Zero et un ventilateur. Environ 9 à 14 h d'autonomie ; sortie USB-A 5 V pour une résistance anti-buée. Un capot ferme la zone du capteur et protège ses fils jusqu'au module. Voir [`docs/alimentation.md`](docs/alimentation.md).
 
 ## Contenu du dépôt
 
@@ -25,7 +25,7 @@ Spectroscope à réseau de diffraction pour petite lunette (conçu pour une 80/4
 | --- | --- |
 | [`docs/`](docs) | Dossier de conception complet (`dossier_conception.pdf`) et images (vues 3D, schéma électronique) |
 | [`optique/`](optique) | `optique.py` : bilan optique (plage couverte, dispersion, résolution par réseau et par fente) |
-| [`mecanique/v2/`](mecanique/v2) | Version actuelle : modèle paramétrique CadQuery `spectro_v2.py`, vérifications, **26 STL à imprimer** et STEP d'assemblage (`export_v2/`) |
+| [`mecanique/v2/`](mecanique/v2) | Version actuelle : modèle paramétrique CadQuery `spectro_v2.py`, vérifications, **25 STL à imprimer** et STEP d'assemblage (`export_v2/`) |
 | [`mecanique/v1/`](mecanique/v1) | Première version (sans miroir ni réglages de mise au point), gardée pour comparaison |
 | [`logiciel/`](logiciel) | Électronique et logiciel : firmware MicroPython de la RP2350-Zero, pilote Python, interface graphique PyQt5, schéma électronique — voir [`logiciel/README.md`](logiciel/README.md) |
 | [`logiciel/serveur/`](logiciel/serveur) | Serveur du Pi Zero (API HTTP + WebSocket) utilisé par l'appli Android : acquisitions, séquences, bibliothèque, étalonnage, ventilateur |
@@ -40,7 +40,7 @@ Spectroscope à réseau de diffraction pour petite lunette (conçu pour une 80/4
 
 Fichiers FreeCAD (atelier Part) : [`mecanique/v2/freecad/`](mecanique/v2/freecad) — l'assemblage complet et une pièce par fichier.
 
-Les fichiers à imprimer sont dans `mecanique/v2/export_v2/` (fichiers `01_` à `26_`). Chaque pièce est déjà posée sur le plateau, sur sa plus grande face plane, et centrée : il suffit de l'ouvrir dans le trancheur. Pour télécharger un fichier seul depuis GitHub, ouvrir le fichier puis utiliser le bouton « Download raw file » (un clic droit « Enregistrer sous » sur le lien enregistre la page web, pas le STL). Imprimer en PETG ou en ASA noir mat, avec 4 périmètres et 40 % de remplissage gyroïde. Le jeu d'impression de 0,25 mm est déjà inclus. L'orientation conseillée pour chaque pièce est indiquée dans le dossier de conception.
+Les fichiers à imprimer sont dans `mecanique/v2/export_v2/` (fichiers `01_` à `25_`). Chaque pièce est déjà posée sur le plateau, sur sa plus grande face plane, et centrée : il suffit de l'ouvrir dans le trancheur. Pour télécharger un fichier seul depuis GitHub, ouvrir le fichier puis utiliser le bouton « Download raw file » (un clic droit « Enregistrer sous » sur le lien enregistre la page web, pas le STL). Imprimer en PETG ou en ASA noir mat, avec 4 périmètres et 40 % de remplissage gyroïde. Le jeu d'impression de 0,25 mm est déjà inclus. L'orientation conseillée pour chaque pièce est indiquée dans le dossier de conception.
 
 ### Régénérer ou modifier la mécanique
 

@@ -1,5 +1,5 @@
 """Verification du module electronique et du capot capteur : aucun composant ne touche le bac,
-le couvercle, la bride, le capot ou un autre composant ; le capot ne touche ni le boitier,
+la bride, le capot ou un autre composant ; le capot ne touche ni le boitier,
 ni la tete de fente, ni la carte capteur ; le module ne touche pas le boitier."""
 import itertools
 import spectro_v2 as S
@@ -10,7 +10,7 @@ def vol(a, b):
     except Exception:
         return 0.0
 
-bac, lid, bride, capot = S.bac_electronique(), S.couvercle_electronique(), S.bride_penglin(), S.capot_capteur()
+bac, bride, capot = S.bac_electronique(), S.bride_penglin(), S.capot_capteur()
 boit = S.boitier()
 tete = S.head_world(S.tete_local())
 plaque = S.sens(S.plaque_capteur_Se())
@@ -21,7 +21,7 @@ def bad(msg):
     global fails; print("  ✗", msg); fails += 1
 
 for k, v in D.items():
-    for nom, piece in (("bac", bac), ("couvercle", lid), ("bride", bride)):
+    for nom, piece in (("bac", bac), ("bride", bride), ("capot", capot)):
         x = vol(v, piece)
         if x > 0.01: bad(f"{k} / {nom} : {x:.2f} mm3")
 for (a, va), (b, vb) in itertools.combinations(D.items(), 2):
@@ -30,14 +30,13 @@ for (a, va), (b, vb) in itertools.combinations(D.items(), 2):
     x = vol(va, vb)
     if x > 0.01: bad(f"{a} / {b} : {x:.2f} mm3")
 for nom, piece in (("boitier", boit), ("tete de fente", tete), ("plaque capteur", plaque), ("carte capteur", carte),
-                   ("couvercle module", lid), ("bac", bac)):
+                   ("bac", bac), ("bride", bride)):
     x = vol(capot, piece)
     if x > 0.01: bad(f"capot / {nom} : {x:.2f} mm3")
-for nom, piece in (("bac", bac), ("couvercle", lid)):
-    x = vol(piece, boit)
-    if x > 0.01: bad(f"{nom} / boitier : {x:.2f} mm3")
-x = vol(bac, lid)
-if x > 0.01: bad(f"bac / couvercle : {x:.2f} mm3")
+x = vol(bac, boit)
+if x > 0.01: bad(f"bac / boitier : {x:.2f} mm3")
+# le bac est bien plaque sous le plancher
+if abs(bac.val().BoundingBox().zmax - (-S.FLOOR)) > 0.01: bad("le bac n'est pas au contact du boitier")
 x = vol(carte, boit)
 if x > 0.01: bad(f"carte capteur / boitier : {x:.2f} mm3")
 
@@ -47,8 +46,8 @@ if abs(bb.zmin - top) > 0.05: bad("la bride ne serre pas la carte PENGLIN")
 print(f"butee bride / USB-A : jeu {S.PEN['x'] + S.PEN['w'] - 13.0 - bb.xmax:.1f} mm")
 for k, v in D.items():
     b = v.val().BoundingBox()
-    if b.zmax > S.Z_LID_BOT - 2.5 - 0.3 and k not in ():
-        print(f"  ! {k} : sommet {b.zmax - S.Z_F:.1f} mm au-dessus du fond (levre du couvercle a {S.Z_LID_BOT - 2.5 - S.Z_F:.1f})")
+    if b.zmax > S.Z_LID_BOT - 0.3:
+        print(f"  ! {k} : sommet {b.zmax - S.Z_F:.1f} mm au-dessus du fond (interieur {S.Z_LID_BOT - S.Z_F:.1f})")
 # le capot ferme bien la zone du capteur : la fente des fils est sous le capot
 x0, x1, y0, y1 = S.CABLE_SLOT
 cb = capot.val().BoundingBox()
