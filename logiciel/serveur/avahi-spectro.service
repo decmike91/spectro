@@ -1,0 +1,11 @@
+<?xml version="1.0" standalone='no'?>
+<!-- Annonce le serveur sur le réseau local (l'appli Android le trouve toute seule).
+     sudo cp avahi-spectro.service /etc/avahi/services/spectro.service -->
+<!DOCTYPE service-group SYSTEM "avahi-service.dtd">
+<service-group>
+  <name replace-wildcards="yes">Spectro %h</name>
+  <service>
+    <type>_spectro._tcp</type>
+    <port>8080</port>
+  </service>
+</service-group>

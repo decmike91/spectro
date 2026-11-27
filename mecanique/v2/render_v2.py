@@ -7,7 +7,7 @@ col={"01_boitier":("#3a3f47",.30),"04_tete_fente":("#c0392b",1),"05_cassette_fen
  "07_chariot_coll":("#5d6d7e",1),"08_tube_coll":("#2980b9",1),"09_bride_coll":("#7f8c8d",1),
  "10_chariot_cam":("#5d6d7e",1),"11_tube_cam":("#2980b9",1),"12_bride_cam":("#7f8c8d",1),
  "13_plateau_equerre":("#8e44ad",1),"14_cadre_tilt":("#d35400",1),"15_disque_reseau":("#e67e22",1),
- "16_plaque_miroir":("#95a5a6",1),"17_plaque_capteur":("#16a085",1),"23_compartiment_batterie":("#34495e",.55),
+ "16_plaque_miroir":("#95a5a6",1),"17_plaque_capteur":("#16a085",1),"23_bac_electronique":("#34495e",.55),"25_capot_capteur":("#e17055",.8),
  "reseau":("#00bcd4",1),"miroir":("#dfe6e9",1),"capteur":("#ecf0f1",1),"vis_coll":("#b7950b",1),"vis_cam":("#b7950b",1),"vis_lambda":("#b7950b",1),"accus":("#2ecc71",.8)}
 allp={**P,**D}
 def tris(wp,tol=0.4):
@@ -25,7 +25,7 @@ def rays():
 # vue de dessus
 fig,ax=plt.subplots(figsize=(11,10))
 for k,(T,c,a) in cache.items():
-    if k in ("23_compartiment_batterie","accus"): continue
+    if k in ("23_bac_electronique","25_capot_capteur","accus"): continue
     for t in T: ax.fill(t[:,0],t[:,1],color=c,alpha=min(1,a*0.9),lw=0)
 for a,b,c in rays(): ax.plot([a[0],b[0]],[a[1],b[1]],color=c,lw=1.6)
 lab=[((-25,40),"Tête de fente\n(coulant 1,25\", tiroir filtre,\nfente inclinée)"),((-30,-70),"Port de\nguidage"),

@@ -3,19 +3,22 @@
 ## Architecture
 
 ```
-TCD1304DG ──OS──► Q1 + U3 (conditionnement) ──► ADC du Pico (12 bits, 250 kéch/s)
+TCD1304DG ──OS──► Q1 + U3 (conditionnement) ──► ADC de la RP2350-Zero (12 bits)
     ▲  φM / SH / ICG                                   │
-    └── 74HCT04 (3,3 V → 5 V) ◄── PIO du Pico ─────────┘
-                                         │ USB (série CDC)
+    └── 74HCT04 (3,3 V → 5 V) ◄── PIO de la RP2350 ────────┘
+                                         │ USB-C (série CDC)
                                  Raspberry Pi Zero : tcd1304.py + spectro_gui.py
 ```
 
-**Pourquoi un Pico entre le capteur et le Pi Zero ?** Le capteur sort un pixel toutes
+**Pourquoi un microcontrôleur RP2350 (ou RP2040) entre le capteur et le Pi Zero ?** Le capteur sort un pixel toutes
 les 4 µs et chaque pixel doit être numérisé en phase exacte avec φM. Le Pi Zero n'a pas
 d'ADC, et Linux n'est pas temps réel : sa gigue (dizaines de µs) mélangerait les pixels.
-Le RP2040 (environ 5 €) génère les horloges avec ses PIO et déclenche chaque conversion
+La RP2350-Zero (environ 8 €, 23,5 × 18 mm) génère les horloges avec ses PIO et déclenche chaque conversion
 ADC par DMA, sans aucune intervention logicielle. Le Pi Zero ne fait que l'affichage
-et le traitement. La même interface tourne aussi sur un PC avec le Pico branché directement.
+et le traitement. La même interface tourne aussi sur un PC avec la carte branchée directement.
+
+Le firmware détecte la puce : il fonctionne tel quel sur une **RP2350-Zero** (montage actuel),
+une Pico 2 / Pico 2 W ou une Pico d'origine (RP2040). Seul `LED_RGB` est à régler en tête de fichier.
 
 ## Fichiers
 
@@ -23,9 +26,11 @@ et le traitement. La même interface tourne aussi sur un PC avec le Pico branch�
 |---|---|
 | `schema/schema_tcd1304.svg / .png` | Schéma électronique |
 | `schema/schema.py` | Source du schéma (schemdraw), modifiable |
-| `firmware/main.py` | Firmware MicroPython du Pico (PIO + DMA + protocole USB) |
+| `firmware/main.py` | Firmware MicroPython de la RP2350-Zero / Pico (PIO + DMA + protocole USB) |
 | `rpi/tcd1304.py` | Pilote Python + simulateur |
-| `rpi/spectro_gui.py` | Interface graphique (PyQt5 + pyqtgraph) |
+| `rpi/spectro_gui.py` | Interface graphique (PyQt5 + pyqtgraph) ; `--server` pour passer par le serveur |
+| `serveur/` | Serveur réseau pour l'appli Android |
+| `demarrage/installer.sh` | Démarrage automatique du serveur et de l'interface |
 
 ## Nomenclature
 
@@ -48,9 +53,10 @@ et le traitement. La même interface tourne aussi sur un PC avec le Pico branch�
 | C8 | 1 µF | |
 | C9 | 470 pF C0G | |
 | FB1 | Ferrite 600 Ω @ 100 MHz | |
-| — | Raspberry Pi Pico (ou Pico W) | |
+| — | RP2350-Zero (Waveshare ou compatible, barrettes soudées) | ou Pico 2 / Pico (même firmware) |
+| — | Plaque à pastilles 50 × 30 mm + 2 barrettes femelles 9 broches | carte d'interface, 4 trous Ø 2,2 aux coins |
 | — | Raspberry Pi Zero / Zero W / Zero 2 W | |
-| — | Câble micro-USB OTG (Pico ↔ port « USB » du Zero) | |
+| — | Câble court micro-USB (OTG) ↔ USB-C, 10 à 15 cm | RP2350-Zero ↔ port « USB » du Zero |
 
 ## Brochage
 
@@ -58,15 +64,23 @@ et le traitement. La même interface tourne aussi sur un PC avec le Pico branch�
 VDD = VAD = 5 V (plage autorisée 3,0 à 5,5 V). Le niveau haut des horloges ne doit
 jamais dépasser VDD : c'est pour ça que le 74HCT04 est alimenté par le même +5VA.
 
-| Pico | → | 74HCT04 | → | TCD1304DG |
+| RP2350-Zero | → | 74HCT04 | → | TCD1304DG |
 |---|---|---|---|---|
-| GP2 (broche 4) | | 1 → 2 | | φM (4) |
-| GP3 (broche 5) | | 3 → 4 | | SH (5) |
-| GP4 (broche 6) | | 5 → 6 | | ICG (3) |
-| GP26/ADC0 (broche 31) | ← R6 ← U3 sortie | | | |
-| VBUS (40) | → FB1 → +5VA | | | |
-| 3V3(OUT) (36) | → U3, RV1 | | | |
-| GND / AGND (38 / 33) | masse commune | | | |
+| GP2 | | 1 → 2 | | φM (4) |
+| GP3 | | 3 → 4 | | SH (5) |
+| GP4 | | 5 → 6 | | ICG (3) |
+| GP26 (ADC0) | ← R6 ← U3 sortie | | | |
+| 5V | → FB1 → +5VA | | | |
+| 3V3 | → U3, RV1 | | | |
+| GND | masse commune | | | |
+
+Les broches de la RP2350-Zero se repèrent à leur nom sérigraphié (GP2, GP3, GP4, GP26, 5V, 3V3, GND).
+Sa LED RGB (GP16) passe au bleu pendant chaque lecture et reste vert faible au repos.
+La RP2350-Zero n'a pas de broche AGND ni ADC_VREF séparée : soigner le découplage
+(C1, C2) et garder le fil OS → GP26 court et torsadé avec une masse.
+
+Le câble entre la carte d'interface (compartiment) et la carte capteur porte 7 fils :
+φM/CLK_M, CLK_SH, CLK_ICG, ADC, +5V, +3V3, GND. Il passe par le trou Ø 6,4 de la face avant.
 
 Conseils de câblage : un plan de masse, des fils d'horloge courts, et la partie
 analogique (Q1, U3) collée au capteur. SH présente 600 pF et ICG 250 pF : le 74HCT04
@@ -90,10 +104,12 @@ La lecture dure 14,8 ms. On obtient environ 30 à 60 trames/s avec des intégrat
 
 ## Installation
 
-### 1. Pico
-1. Flasher MicroPython **≥ 1.23** (fichier .uf2 depuis micropython.org, en maintenant BOOTSEL).
-2. Copier `firmware/main.py` sur le Pico : `mpremote cp firmware/main.py :main.py`, ou via Thonny.
-3. Débrancher puis rebrancher le Pico : il démarre l'acquisition tout seul.
+### 1. RP2350-Zero
+1. Flasher MicroPython **≥ 1.24** pour RP2350 : fichier .uf2 « RPI_PICO2 » (micropython.org/download/RPI_PICO2).
+   Maintenir BOOT en branchant l'USB-C, puis copier le .uf2 sur le disque qui apparaît.
+2. Copier `firmware/main.py` sur la carte : `mpremote cp firmware/main.py :main.py`, ou via Thonny.
+3. Débrancher puis rebrancher : la LED passe au vert faible, l'acquisition est prête.
+   (Sur une Pico, mettre `LED_RGB = False` en tête de `main.py`.)
 
 ### 2. Raspberry Pi Zero (Raspberry Pi OS avec bureau)
 ```bash
@@ -103,7 +119,7 @@ python3 rpi/tcd1304.py                # test en ligne de commande
 python3 rpi/spectro_gui.py            # interface graphique
 python3 rpi/spectro_gui.py --sim      # interface sans matériel (simulateur)
 ```
-Sur un Pi Zero sans écran, l'interface s'utilise via VNC. On peut aussi brancher le Pico
+Sur un Pi Zero sans écran, l'interface s'utilise via VNC. On peut aussi brancher la RP2350-Zero
 sur un PC (`--port COM5` sous Windows).
 
 ## Mise en service

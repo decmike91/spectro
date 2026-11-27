@@ -1,0 +1,12 @@
+[Desktop Entry]
+# Lancement automatique de l'interface du spectro à l'ouverture du bureau.
+# Installé par installer.sh dans ~/.config/autostart/ (chemins adaptés).
+Type=Application
+Name=Spectro TCD1304
+Comment=Interface du spectrographe (passe par le serveur, l'appli Android reste utilisable)
+Exec=/usr/bin/python3 @DEPOT@/logiciel/rpi/spectro_gui.py --server http://127.0.0.1:8080 --run @OPTIONS@
+Path=@DEPOT@/logiciel/rpi
+Icon=applications-science
+Terminal=false
+Categories=Science;Education;
+X-GNOME-Autostart-enabled=true

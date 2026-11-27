@@ -5,6 +5,8 @@ Interface graphique du spectrographe TCD1304DG.
     python3 spectro_gui.py                 # matériel sur /dev/ttyACM0
     python3 spectro_gui.py --port COM5     # sous Windows
     python3 spectro_gui.py --sim           # simulateur, sans matériel
+    python3 spectro_gui.py --server        # via le serveur (en même temps que l'appli Android)
+    python3 spectro_gui.py --server 192.168.1.20 --run --fullscreen
 
 Dépendances (Raspberry Pi OS) :
     sudo apt install python3-pyqt5 python3-pyqtgraph python3-numpy python3-serial
@@ -26,7 +28,7 @@ import numpy as np
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore, QtGui, QtWidgets
 
-from tcd1304 import TCD1304, TCD1304Simulator, ADC_MAX, NPIX
+from tcd1304 import TCD1304, TCD1304Remote, TCD1304Simulator, ADC_MAX, NPIX
 
 # =============================================================================
 #  CONFIGURATION (à adapter)
@@ -107,8 +109,8 @@ class Calibration:
         self.load()
 
     def nm(self, px):
-        c = self.coeffs
-        return c[0] + c[1] * px + c[2] * px ** 2 + c[3] * px ** 3
+        px = np.asarray(px, float)
+        return sum(c * px ** i for i, c in enumerate(self.coeffs))
 
     def fit(self, degree):
         p = np.array([q[0] for q in self.points], float)
@@ -285,6 +287,16 @@ class MainWindow(QtWidgets.QMainWindow):
         self.worker = AcqWorker(dev)
         self.worker.frame_ready.connect(self.on_frame)
         self.worker.error.connect(lambda m: self.status.showMessage("Erreur : " + m, 5000))
+        if getattr(dev, "remote", False):
+            # via le serveur : reprendre son temps de pose et son étalonnage
+            if dev.tint_us:
+                self.sp_tint.blockSignals(True)
+                self.sp_tint.setValue(dev.tint_us / 1000.0)
+                self.sp_tint.blockSignals(False)
+            if dev.calib and len(dev.calib.get("coeffs", [])) >= 2:
+                self.calib.coeffs = [float(c) for c in dev.calib["coeffs"]]
+                self.calib.points = [tuple(p) for p in dev.calib.get("points", [])]
+            self.setWindowTitle("Spectrographe TCD1304DG — serveur " + dev.url)
         self.worker.start()
         self.on_tint_changed()
 
@@ -422,7 +434,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.status.showMessage("Référence enregistrée", 3000)
 
     def on_calib(self):
-        CalibDialog(self.calib, list(self.peaks), self).exec()
+        if CalibDialog(self.calib, list(self.peaks), self).exec() and getattr(self.dev, "remote", False):
+            try:   # le téléphone voit le même étalonnage
+                self.dev.put_calibration(self.calib.coeffs, self.calib.points)
+            except Exception as e:
+                self.status.showMessage("Étalonnage non envoyé au serveur : %s" % e, 6000)
 
     def x_axis(self):
         px = np.arange(3648)
@@ -518,12 +534,27 @@ def main():
     ap = argparse.ArgumentParser(description="Spectrographe TCD1304DG")
     ap.add_argument("--port", default=CONFIG["port"])
     ap.add_argument("--sim", action="store_true", help="simulateur sans matériel")
+    ap.add_argument("--server", nargs="?", const="http://127.0.0.1:8080", metavar="URL",
+                    help="passer par le serveur spectro_server.py (défaut : ce Pi, port 8080) ; "
+                         "l'appli Android peut alors être utilisée en même temps")
+    ap.add_argument("--run", action="store_true", help="démarrer l'acquisition en continu dès l'ouverture")
+    ap.add_argument("--fullscreen", action="store_true", help="plein écran (petit écran sur le Pi)")
     args = ap.parse_args()
     app = QtWidgets.QApplication(sys.argv)
-    dev = TCD1304Simulator() if args.sim else TCD1304(args.port)
+    if args.sim:
+        dev = TCD1304Simulator()
+    elif args.server:
+        dev = TCD1304Remote(args.server)
+    else:
+        dev = TCD1304(args.port)
     win = MainWindow(dev)
     win.resize(1100, 650)
-    win.show()
+    if args.fullscreen:
+        win.showFullScreen()
+    else:
+        win.show()
+    if args.run:
+        win.b_run.setChecked(True)
     sys.exit(app.exec())
 
 
